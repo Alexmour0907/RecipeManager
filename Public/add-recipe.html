@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Recipe - Recipe Manager</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/auth.js" defer></script>
+    <script src="/js/main.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <nav class="main-nav">
+            <div class="logo">Recipe Manager</div>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/recipes.html">Recipes</a>
+                <a href="/add-recipe.html" class="active">Add New Recipe</a>
+                <a href="#" id="logout-btn">Logout</a>
+            </div>
+        </nav>
+
+        <h1>Add New Recipe</h1>
+        
+        <form id="recipe-form">
+            <div class="form-group">
+                <label for="title">Recipe Title</label>
+                <input type="text" id="title" name="title" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="ingredients">Ingredients</label>
+                <textarea id="ingredients" name="ingredients" rows="5" required></textarea>
+                <small>Enter each ingredient on a new line</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="instructions">Instructions</label>
+                <textarea id="instructions" name="instructions" rows="8" required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="category">Category</label>
+                <select id="category" name="category_id" required>
+                    <option value="">Select a category</option>
+                    <!-- Categories will be loaded here -->
+                </select>
+            </div>
+            
+            <button type="submit" class="btn">Save Recipe</button>
+        </form>
+    </div>
+</body>
+</html>

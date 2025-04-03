@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipes - Recipe Manager</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/auth.js" defer></script>
+    <script src="/js/main.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <nav class="main-nav">
+            <div class="logo">Recipe Manager</div>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/recipes.html" class="active">Recipes</a>
+                <a href="/add-recipe.html">Add New Recipe</a>
+                <a href="#" id="logout-btn">Logout</a>
+            </div>
+        </nav>
+
+        <h1>All Recipes</h1>
+        
+        <div class="category-filter">
+            <label for="category-select">Filter by Category:</label>
+            <select id="category-select">
+                <option value="">All Categories</option>
+                <!-- Categories will be loaded here -->
+            </select>
+        </div>
+        
+        <div id="recipes-container" class="recipes-grid">
+            <!-- Recipes will be loaded here -->
+            <div class="loading">Loading recipes...</div>
+        </div>
+    </div>
+</body>
+</html>
