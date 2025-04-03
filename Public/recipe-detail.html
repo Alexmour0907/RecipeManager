@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Details - Recipe Manager</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/auth.js" defer></script>
+    <script src="/js/main.js" defer></script>
+    <script src="/js/recipe-detail.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <nav class="main-nav">
+            <div class="logo">Recipe Manager</div>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/recipes.html">Recipes</a>
+                <a href="/add-recipe.html">Add New Recipe</a>
+                <a href="#" id="logout-btn">Logout</a>
+            </div>
+        </nav>
+
+        <div id="recipe-container">
+            <div class="loading">Loading recipe...</div>
+        </div>
+        
+        <div class="recipe-actions">
+            <a href="/recipes.html" class="btn">Back to Recipes</a>
+            <a id="edit-link" href="#" class="btn">Edit Recipe</a>
+            <button id="delete-btn" class="btn btn-danger">Delete Recipe</button>
+        </div>
+    </div>
+</body>
+</html>

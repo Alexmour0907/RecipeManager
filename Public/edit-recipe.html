@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Recipe - Recipe Manager</title>
+    <title>Edit Recipe - Recipe Manager</title>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <script src="/js/auth.js" defer></script>
     <script src="/js/main.js" defer></script>
-    <script src="/js/add-recipe.js" defer></script>
+    <script src="/js/edit-recipe.js" defer></script>
 </head>
 <body>
     <div class="container">
@@ -17,13 +17,13 @@
             <div class="nav-links">
                 <a href="/">Home</a>
                 <a href="/recipes.html">Recipes</a>
-                <a href="/add-recipe.html" class="active">Add New Recipe</a>
+                <a href="/add-recipe.html">Add New Recipe</a>
                 <a href="#" id="logout-btn">Logout</a>
             </div>
         </nav>
 
         <header class="page-header">
-            <h1>Add New Recipe</h1>
+            <h1>Edit Recipe</h1>
         </header>
         
         <!-- Error message container -->
@@ -55,6 +55,17 @@
                 </select>
             </div>
             
+            <div class="form-group favorite-option">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="is_favorite" name="is_favorite">
+                    <span class="checkbox-text">
+                        <i class="far fa-star"></i>
+                        <i class="fas fa-star checked-star"></i>
+                        Mark as favorite
+                    </span>
+                </label>
+            </div>
+            
             <!-- Category Management Section -->
             <div class="category-management">
                 <h4>Add Custom Category</h4>
@@ -70,7 +81,7 @@
             </div>
             
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Save Recipe</button>
+                <button type="submit" class="btn btn-primary">Update Recipe</button>
                 <a href="/recipes.html" class="btn">Cancel</a>
             </div>
         </form>
@@ -79,7 +90,7 @@
     <!-- Helpful tip -->
     <div class="tooltip-help">
         <i class="fas fa-question-circle"></i>
-        <span class="tooltip-text">Create custom categories to better organize your recipes!</span>
+        <span class="tooltip-text">You can mark your favorite recipes with the star!</span>
     </div>
 </body>
 </html>

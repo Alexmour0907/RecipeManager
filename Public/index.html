@@ -5,16 +5,74 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recipe Manager</title>
     <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <script src="/js/auth.js" defer></script>
     <script src="/js/main.js" defer></script>
+    <script src="/js/home.js" defer></script>
 </head>
 <body>
     <div class="container">
-        <h1>Welcome to Recipe Manager</h1>
-        <div class="home-actions">
-            <a href="/login.html" class="btn">Login</a>
-            <a href="/register.html" class="btn">Register</a>
-            <a href="/recipes.html" class="btn">Browse Recipes</a>
+        <!-- Login view (shown when not logged in) -->
+        <div id="login-view">
+            <h1>Welcome to Recipe Manager</h1>
+            <p class="intro-text">Store, organize and manage all your favorite recipes in one place.</p>
+            <div class="home-actions">
+                <a href="/login.html" class="btn">Login</a>
+                <a href="/register.html" class="btn">Register</a>
+            </div>
+        </div>
+        
+        <!-- Dashboard view (shown when logged in) -->
+        <div id="dashboard-view" style="display: none;">
+            <nav class="main-nav">
+                <div class="logo">Recipe Manager</div>
+                <div class="nav-links">
+                    <a href="/" class="active">Home</a>
+                    <a href="/recipes.html">Recipes</a>
+                    <a href="/add-recipe.html">Add New Recipe</a>
+                    <a href="#" id="logout-btn">Logout</a>
+                </div>
+            </nav>
+            
+            <h1>Welcome, <span id="username-display"></span>!</h1>
+            
+            <!-- Stats Cards -->
+            <div class="recipe-stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-recipes">0</div>
+                    <div class="stat-label">Total Recipes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="favorite-recipes">0</div>
+                    <div class="stat-label">Favorite Recipes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="total-categories">0</div>
+                    <div class="stat-label">Categories</div>
+                </div>
+            </div>
+            
+            <!-- Recent Recipes -->
+            <section class="recent-section">
+                <h2>Recently Added <a href="/recipes.html" class="view-all">View All</a></h2>
+                <div id="recent-recipes" class="recipe-preview-container">
+                    <div class="loading">Loading recipes...</div>
+                </div>
+            </section>
+            
+            <!-- Favorite Recipes -->
+            <section class="favorites-section">
+                <h2>Favorite Recipes <a href="/recipes.html?favorites=1" class="view-all">View All</a></h2>
+                <div id="favorite-recipes-container" class="recipe-preview-container">
+                    <div class="loading">Loading favorites...</div>
+                </div>
+            </section>
+            
+            <div class="quick-actions">
+                <a href="/add-recipe.html" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add New Recipe
+                </a>
+            </div>
         </div>
     </div>
 </body>

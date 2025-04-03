@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recipes - Recipe Manager</title>
+    <title>My Recipes - Recipe Manager</title>
     <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <script src="/js/auth.js" defer></script>
     <script src="/js/main.js" defer></script>
+    <script src="/js/recipes.js" defer></script>
 </head>
 <body>
     <div class="container">
@@ -20,20 +22,64 @@
             </div>
         </nav>
 
-        <h1>All Recipes</h1>
+        <header class="page-header">
+            <h1>My Recipes</h1>
+            <a href="/add-recipe.html" class="btn btn-primary add-recipe-btn">
+                <i class="fas fa-plus"></i> Add New Recipe
+            </a>
+        </header>
         
-        <div class="category-filter">
-            <label for="category-select">Filter by Category:</label>
-            <select id="category-select">
-                <option value="">All Categories</option>
-                <!-- Categories will be loaded here -->
-            </select>
+        <div class="filters-bar">
+            <div class="filter-group">
+                <label for="category-select">Filter by Category:</label>
+                <select id="category-select">
+                    <option value="">All Categories</option>
+                    <!-- Categories will be loaded here -->
+                </select>
+            </div>
+            
+            <button id="favorites-filter" class="favorite-filter">
+                <i class="fas fa-star"></i> Show Favorites Only
+            </button>
+        </div>
+        
+        <div class="recipe-count">
+            <span id="recipe-count-display">0</span> recipes found
         </div>
         
         <div id="recipes-container" class="recipes-grid">
-            <!-- Recipes will be loaded here -->
+            <!-- Recipe cards will be loaded here -->
             <div class="loading">Loading recipes...</div>
         </div>
+        
+        <!-- Template for recipe card -->
+        <template id="recipe-card-template">
+            <div class="recipe-card">
+                <div class="recipe-header">
+                    <h3 class="recipe-title">Recipe Title</h3>
+                    <button class="favorite-btn" title="Mark as favorite">
+                        <i class="far fa-star"></i>
+                    </button>
+                </div>
+                <div class="recipe-category">Category: <span></span></div>
+                <div class="recipe-actions">
+                    <a href="#" class="btn btn-sm view-btn">View</a>
+                    <a href="#" class="btn btn-sm edit-btn">Edit</a>
+                    <button class="btn btn-sm btn-danger delete-recipe">Delete</button>
+                </div>
+            </div>
+        </template>
+        
+        <div class="no-recipes-message" style="display: none;">
+            <p>You don't have any recipes yet.</p>
+            <a href="/add-recipe.html" class="btn">Add Your First Recipe</a>
+        </div>
+    </div>
+    
+    <!-- Quick help tooltip for favorites -->
+    <div class="tooltip-help">
+        <i class="fas fa-question-circle"></i>
+        <span class="tooltip-text">Click the star icon to mark a recipe as a favorite!</span>
     </div>
 </body>
 </html>
