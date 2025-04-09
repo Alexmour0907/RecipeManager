@@ -1,17 +1,42 @@
-/* ==================== VARIABLES ==================== */
+/* ==================== TABLE OF CONTENTS ====================
+ 1. VARIABLES
+ 2. BASE STYLES
+ 3. LAYOUT
+ 4. NAVIGATION
+ 5. FORMS & INPUTS
+ 6. BUTTONS & ACTIONS
+ 7. CARDS & GRIDS
+ 8. FAVORITES SYSTEM
+ 9. IMAGE HANDLING
+10. DASHBOARD
+11. AUTH PAGES
+12. MODALS
+13. TOOLTIPS & HELPERS
+14. CATEGORY MANAGEMENT
+15. RESPONSIVE ADJUSTMENTS
+==================== */
+
+/* ==================== 1. VARIABLES ==================== */
 :root {
   --primary-color: #2c3e50;
   --secondary-color: #e74c3c;
+  --accent-color: #3498db;
+  --success-color: #2ecc71;
   --text-color: #333;
+  --light-text: #666;
+  --lighter-text: #999;
   --light-bg: #f9f9f9;
   --border-color: #ddd;
   --shadow: 0 2px 5px rgba(0,0,0,0.1);
-  --hover-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  --accent-color: #3498db;
-  --star-color: gold;
+  --hover-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  --card-bg: #fff;
+  --star-color: #FFD700;
+  --button-radius: 4px;
+  --card-radius: 8px;
+  --transition-speed: 0.2s;
 }
 
-/* ==================== BASE STYLES ==================== */
+/* ==================== 2. BASE STYLES ==================== */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -25,20 +50,67 @@ body {
   background-color: var(--light-bg);
 }
 
-h1 {
-  margin-bottom: 20px;
+h1, h2, h3, h4, h5, h6 {
   color: var(--primary-color);
-  text-align: center;
+  margin-bottom: 15px;
 }
 
-/* ==================== LAYOUT ==================== */
+h1 {
+  font-size: 2rem;
+}
+
+h2 {
+  font-size: 1.5rem;
+}
+
+h3 {
+  font-size: 1.2rem;
+}
+
+a {
+  text-decoration: none;
+  color: var(--accent-color);
+  transition: color var(--transition-speed);
+}
+
+a:hover {
+  color: #2980b9;
+}
+
+ul, ol {
+  padding-left: 20px;
+}
+
+p {
+  margin-bottom: 15px;
+}
+
+small {
+  font-size: 0.85rem;
+  color: var(--light-text);
+}
+
+/* ==================== 3. LAYOUT ==================== */
 .container {
   max-width: 1100px;
   margin: 0 auto;
   padding: 0 20px;
 }
 
-/* ==================== NAVIGATION ==================== */
+.page-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+.section {
+  margin-bottom: 30px;
+}
+
+/* ==================== 4. NAVIGATION ==================== */
 .main-nav {
   display: flex;
   justify-content: space-between;
@@ -54,10 +126,19 @@ h1 {
   color: var(--primary-color);
 }
 
+.nav-links {
+  display: flex;
+}
+
 .nav-links a {
   margin-left: 20px;
   text-decoration: none;
   color: var(--text-color);
+  transition: color var(--transition-speed);
+}
+
+.nav-links a:hover {
+  color: var(--accent-color);
 }
 
 .nav-links a.active {
@@ -65,7 +146,7 @@ h1 {
   font-weight: bold;
 }
 
-/* ==================== FORMS ==================== */
+/* ==================== 5. FORMS & INPUTS ==================== */
 form {
   max-width: 600px;
   margin: 20px auto;
@@ -78,48 +159,90 @@ form {
 label {
   display: block;
   margin-bottom: 5px;
-  font-weight: bold;
+  font-weight: 500;
 }
 
 input, textarea, select {
   width: 100%;
-  padding: 10px;
+  padding: 10px 12px;
   border: 1px solid var(--border-color);
-  border-radius: 4px;
+  border-radius: var(--button-radius);
   font-size: 1rem;
+  transition: border-color var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+.input-with-icon {
+  position: relative;
+}
+
+.input-with-icon input {
+  padding-left: 40px;
+}
+
+.input-with-icon i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--light-text);
+  transition: color var(--transition-speed);
+}
+
+.input-with-icon input:focus + i {
+  color: var(--accent-color);
 }
 
 .error-message {
   background-color: #ffdddd;
-  color: #ff0000;
+  color: var(--secondary-color);
   padding: 10px;
   margin-bottom: 15px;
-  border-radius: 4px;
-  border: 1px solid #ff0000;
+  border-radius: var(--button-radius);
+  border: 1px solid var(--secondary-color);
 }
 
-/* ==================== BUTTONS ==================== */
+.success-message {
+  background-color: #e7f7ed;
+  color: var(--success-color);
+  padding: 10px;
+  margin-bottom: 15px;
+  border-radius: var(--button-radius);
+  border: 1px solid var(--success-color);
+  text-align: center;
+}
+
+/* Form actions */
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 25px;
+}
+
+/* ==================== 6. BUTTONS & ACTIONS ==================== */
 .btn {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background-color: var(--primary-color);
   color: white;
-  padding: 10px 20px;
+  padding: 10px 15px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--button-radius);
   cursor: pointer;
-  text-decoration: none;
   font-size: 1rem;
-  margin-top: 10px;
+  transition: background-color var(--transition-speed), transform var(--transition-speed);
+  text-decoration: none;
 }
 
 .btn:hover {
   background-color: #1a2530;
-}
-
-.btn-sm {
-  padding: 5px 10px;
-  font-size: 0.9rem;
-  margin-top: 0;
+  transform: translateY(-2px);
 }
 
 .btn-primary {
@@ -130,357 +253,210 @@ input, textarea, select {
   background-color: #1a2530;
 }
 
-.btn-danger,
-.btn-delete {
-  background-color: var(--secondary-color);
-  color: white;
-}
-
-.btn-danger:hover,
-.btn-delete:hover {
-  background-color: #c0392b;
-}
-
-/* Improved Delete Button Styling for Categories */
-.btn-delete {
-  background: none;
-  border: none;
-  color: #ccc;
-  font-size: 1rem;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-delete:hover {
-  background-color: #ffebee;
-  color: var(--secondary-color);
-  transform: scale(1.1);
-}
-
-.category-list li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 7px 0;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.category-list li:last-child {
-  border-bottom: none;
-}
-
-.category-list li span {
-  font-size: 0.95rem;
-  flex-grow: 1;
-  color: #555;
-}
-
-/* Add a subtle hover effect to the list items */
-.category-list li:hover {
-  background-color: #f8f8f8;
-}
-
-/* Better checkbox styling for favorites */
-.favorite-option {
-  margin-top: 5px;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  user-select: none;
-}
-
-.checkbox-label input[type="checkbox"] {
-  position: absolute;
-  opacity: 0;
-  cursor: pointer;
-  height: 0;
-  width: 0;
-}
-
-.checkbox-text {
-  display: flex;
-  align-items: center;
-  font-size: 1rem;
-  color: #555;
-}
-
-.checkbox-text .fa-star {
-  margin-right: 8px;
-  font-size: 1.2rem;
-}
-
-.checkbox-text .far.fa-star {
-  display: inline;
-}
-
-.checkbox-text .fas.fa-star {
-  display: none;
-  color: var(--star-color);
-}
-
-.checkbox-label input:checked ~ .checkbox-text .far.fa-star {
-  display: none;
-}
-
-.checkbox-label input:checked ~ .checkbox-text .fas.fa-star {
-  display: inline;
-}
-
-/* ==================== HOME PAGE ==================== */
-.home-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 40px;
-}
-
-.home-actions .btn {
-  margin: 10px 0;
-  width: 200px;
-  text-align: center;
-}
-
-.intro-text {
-  text-align: center;
-  margin-bottom: 30px;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* ==================== PAGE HEADER ==================== */
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.add-recipe-btn {
-  margin-top: 0;
-}
-
-/* ==================== FILTERS ==================== */
-.filters-bar {
-  display: flex;
-  align-items: center;
-  margin-bottom: 20px;
-  background-color: white;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-}
-
-.filter-group {
-  display: flex;
-  align-items: center;
-  margin-right: 20px;
-}
-
-.filter-group label {
-  margin-right: 10px;
-  margin-bottom: 0;
-}
-
-.filter-group select {
-  width: auto;
-}
-
-.favorite-filter {
-  display: inline-flex;
-  align-items: center;
-  padding: 5px 10px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background-color: white;
-  cursor: pointer;
-  margin-right: 10px;
-}
-
-.favorite-filter.active {
-  background-color: #fff8e1;
-  border-color: var(--star-color);
-}
-
-.favorite-filter i {
-  color: var(--star-color);
-  margin-right: 5px;
-}
-
-.recipe-count {
-  margin-bottom: 15px;
-  font-size: 0.9rem;
-  color: #666;
-}
-
-#recipe-count-display {
-  font-weight: bold;
-  color: var(--primary-color);
-}
-
-/* ==================== RECIPE CARDS & GRID ==================== */
-.recipes-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-  margin-top: 20px;
-}
-
-.recipe-card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-  overflow: hidden;
-  position: relative;
-}
-
-.recipe-card.is-favorite {
-  border-left: 3px solid var(--star-color);
-}
-
-.recipe-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 15px 15px 5px;
-  position: relative;
-}
-
-.recipe-card h3 {
-  margin: 0;
-  color: var(--primary-color);
-  flex-grow: 1;
-}
-
-.recipe-category {
-  padding: 0 15px 10px;
-  font-size: 0.9rem;
-  color: #666;
-}
-
-.recipe-category span {
-  font-weight: bold;
-}
-
-.recipe-actions {
-  display: flex;
-  padding: 10px 15px;
-  border-top: 1px solid var(--border-color);
-  gap: 8px;
-}
-
-.recipe-actions a,
-.recipe-actions button {
-  color: white;
-  text-decoration: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  border: none;
-  cursor: pointer;
-  display: inline-block;
-  text-align: center;
-}
-
-.view-btn {
-  background-color: var(--primary-color);
-}
-
-.view-btn:hover {
-  background-color: #1a2530;
-}
-
-.edit-btn {
+.btn-accent {
   background-color: var(--accent-color);
 }
 
-.edit-btn:hover {
+.btn-accent:hover {
   background-color: #2980b9;
 }
 
-.delete-recipe {
+.btn-danger {
   background-color: var(--secondary-color);
 }
 
-.delete-recipe:hover {
+.btn-danger:hover {
   background-color: #c0392b;
 }
 
-.no-recipes-message {
-  text-align: center;
-  padding: 40px;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: var(--shadow);
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.9rem;
 }
 
-/* ==================== FAVORITES SYSTEM ==================== */
-.favorite-btn {
-  background: none;
+.btn-block {
+  width: 100%;
+  margin-top: 15px;
+}
+
+.btn i {
+  margin-right: 8px;
+}
+
+/* ==================== 6. BUTTONS & ACTIONS ==================== */
+
+/* Fix for action buttons with better text contrast */
+
+/* Updated action button styles with better spacing and delete button treatment */
+
+/* Base action button with white text that stays white on hover */
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  border-radius: var(--button-radius);
+  transition: all var(--transition-speed);
   border: none;
   cursor: pointer;
-  font-size: 1.5rem;
-  color: #ccc;
-  transition: all 0.2s ease;
-  padding: 8px;
-  margin-left: 5px;
-  border-radius: 50%;
-  display: inline-flex;
+  color: white !important; /* Force white text */
+  background-color: var(--primary-color);
+  text-decoration: none;
+}
+
+.action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+  color: white !important; /* Keep text white on hover */
+}
+
+/* Increase space between icon and text */
+.action-btn i {
+  margin-right: 8px; /* Was 5px, now increased to 8px */
+}
+
+/* View button */
+.btn-view, .action-btn.btn-view {
+  background-color: var(--primary-color);
+  color: white !important;
+}
+
+.btn-view:hover, .action-btn.btn-view:hover {
+  background-color: #1a2530;
+  color: white !important;
+}
+
+/* Edit button */
+.btn-edit, .action-btn.btn-edit {
+  background-color: var(--accent-color);
+  color: white !important;
+}
+
+.btn-edit:hover, .action-btn.btn-edit:hover {
+  background-color: #2980b9;
+  color: white !important;
+}
+
+/* Special delete button - no background initially, red text */
+.action-btn.btn-delete, .action-btn.delete-recipe {
+  background-color: transparent;
+  color: var(--secondary-color) !important;
+  border: 1px solid var(--secondary-color);
+}
+
+/* Delete button hover - red background, white text */
+.action-btn.btn-delete:hover, .action-btn.delete-recipe:hover {
+  background-color: var(--secondary-color);
+  color: white !important;
+  border: 1px solid var(--secondary-color);
+}
+
+/* Preview link on homepage cards */
+/* ==================== FIX FOR HOMEPAGE RECIPE CARDS ==================== */
+
+/* Fix duplicate buttons section - remove second one and keep only these styles */
+/* Remove duplicate section "6. BUTTONS & ACTIONS" that appears twice */
+
+/* Fix the preview link buttons specifically */
+.preview-link.action-btn {
+  color: white !important;
+  text-decoration: none;
+  background-color: var(--accent-color);
+  margin-top: auto;
+  margin-top: 15px;
+  align-self: flex-start;
+  border-radius: var(--button-radius);
+}
+
+.preview-link.action-btn:hover {
+  background-color: #2980b9;
+  color: white !important;
+  text-decoration: none;
+  transform: translateY(-2px);
+}
+
+/* Ensure recipe preview cards display correctly */
+.recipe-preview-card {
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+  background-color: var(--card-bg);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.recipe-preview-content {
+  padding: 15px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Make sure the recipe grid layout is correct */
+.recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-top: 15px;
+}
+
+/* Special delete button - Make EXPLICITLY square/rectangular */
+.action-btn.btn-delete, 
+.action-btn.delete-recipe {
+  background-color: transparent;
+  color: var(--secondary-color) !important;
+  border: 1px solid var(--secondary-color);
+  border-radius: var(--button-radius) !important; /* FORCE square corners */
+  width: auto; /* Remove any fixed width */
+  height: auto; /* Remove any fixed height */
+  padding: 8px 12px; /* Same padding as other action buttons */
+  display: inline-flex; /* Match other buttons */
   align-items: center;
   justify-content: center;
 }
 
+/* Delete button hover - EXPLICITLY maintain square shape */
+.action-btn.btn-delete:hover, 
+.action-btn.delete-recipe:hover {
+  background-color: var(--secondary-color);
+  color: white !important;
+  border: 1px solid var(--secondary-color);
+  border-radius: var(--button-radius) !important; /* FORCE square corners on hover too */
+  transform: translateY(-2px);
+  box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+}
+
+/* Favorite button */
+.favorite-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  transition: all var(--transition-speed);
+  color: var(--lighter-text);
+}
+
 .favorite-btn:hover {
-  transform: scale(1.2);
   background-color: #f8f8f8;
-  box-shadow: 0 0 5px rgba(0,0,0,0.1);
+  transform: scale(1.1);
+  color: #bbb;
 }
 
 .favorite-btn.active {
   color: var(--star-color);
-  text-shadow: 0 0 3px rgba(0,0,0,0.2);
 }
 
-.favorite-btn::after {
-  content: "Click to mark as favorite";
-  position: absolute;
-  background: #333;
-  color: white;
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  top: 100%;
-  right: 0;
-  white-space: nowrap;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s;
-  z-index: 10;
-}
-
-.favorite-btn.active::after {
-  content: "Remove from favorites";
-}
-
-.favorite-btn:hover::after {
-  opacity: 1;
-  visibility: visible;
-}
-
-.favorite-indicator {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  color: var(--star-color);
-  font-size: 1rem;
+.favorite-btn.just-favorited {
+  animation: favorite-pulse 0.5s ease;
 }
 
 @keyframes favorite-pulse {
@@ -489,53 +465,153 @@ input, textarea, select {
   100% { transform: scale(1); }
 }
 
-.favorite-btn.just-favorited {
-  animation: favorite-pulse 0.5s ease;
+/* ==================== 7. CARDS & GRIDS ==================== */
+/* Recipe grid layouts */
+.recipes-container,
+.recipes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 25px;
+  margin-top: 20px;
 }
 
-.favorites-badge {
-  display: inline-flex;
+.recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-top: 15px;
+}
+
+/* Recipe Cards - Main List */
+.recipe-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+  background-color: var(--card-bg);
+  height: 100%;
+}
+
+.recipe-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--hover-shadow);
+}
+
+.recipe-card.is-favorite {
+  border-left: 3px solid var(--star-color);
+}
+
+.recipe-card-image {
+  width: 100%;
+  height: 160px;
+  background-color: #f5f5f5;
+  background-size: cover;
+  background-position: center;
+}
+
+.recipe-card-image.no-image {
+  display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--primary-color);
-  color: white;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  font-size: 0.8rem;
-  margin-left: 8px;
 }
 
-/* ==================== DASHBOARD ==================== */
-.recent-section,
-.favorites-section {
-  margin-bottom: 30px;
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: var(--shadow);
+.recipe-card-image.no-image i {
+  font-size: 2.5rem;
+  color: #ddd;
 }
 
-.recent-section h2,
-.favorites-section h2 {
-  margin-bottom: 15px;
-  font-size: 1.4rem;
-  color: var(--primary-color);
+.recipe-card-content {
+  padding: 15px;
+  flex-grow: 1;
+}
+
+.recipe-card-content h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+}
+
+.recipe-card-category {
+  color: var(--light-text);
+  font-size: 0.85rem;
+}
+
+.recipe-card-actions {
   display: flex;
-  justify-content: space-between;
+  gap: 8px;
+  padding: 12px;
+  background-color: #f9f9f9;
+  border-top: 1px solid #eee;
+}
+
+/* Preview Cards - Homepage */
+.recipe-preview-card {
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+  background-color: var(--card-bg);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.recipe-preview-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--hover-shadow);
+}
+
+.recipe-preview-image {
+  width: 100%;
+  height: 140px;
+  background-color: #f5f5f5;
+  background-size: cover;
+  background-position: center;
+}
+
+.recipe-preview-image.no-image {
+  display: flex;
   align-items: center;
+  justify-content: center;
 }
 
-.view-all {
+.recipe-preview-image.no-image i {
+  font-size: 2rem;
+  color: #ddd;
+}
+
+.recipe-preview-content {
+  padding: 15px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.recipe-preview-content h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+}
+
+.recipe-preview-category {
+  color: var(--light-text);
   font-size: 0.9rem;
-  color: var(--accent-color);
-  text-decoration: none;
+  margin-bottom: 10px;
 }
 
-.view-all:hover {
+.preview-link {
+  color: var(--accent-color);
+  font-weight: 500;
+  margin-top: auto;
+  transition: color var(--transition-speed);
+}
+
+.preview-link:hover {
+  color: #2980b9;
   text-decoration: underline;
 }
 
+/* Recipe preview container for horizontal scrolling */
 .recipe-preview-container {
   display: flex;
   gap: 15px;
@@ -559,182 +635,792 @@ input, textarea, select {
   background-color: #f5f5f5;
 }
 
-.recipe-preview-card {
-  flex: 0 0 250px;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  padding: 15px;
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow);
-  transition: transform 0.2s, box-shadow 0.2s;
+/* ==================== 8. FAVORITES SYSTEM ==================== */
+/* Star checkbox for forms */
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.star-checkbox {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.star-checkbox input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.star-checkbox .checkmark {
+  position: relative;
+  display: inline-block;
+  color: #ccc;
+  font-size: 1.5rem;
+  margin-right: 8px;
+  transition: color var(--transition-speed);
+}
+
+.star-checkbox input:checked ~ .checkmark {
+  color: var(--star-color);
+}
+
+.star-checkbox .checkmark:before {
+  content: "\f005"; /* FontAwesome star icon */
+  font-family: "Font Awesome 5 Free";
+  font-weight: 900;
+}
+
+.star-checkbox:hover .checkmark {
+  transform: scale(1.1);
+}
+
+/* Favorites filter button */
+.favorite-filter {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--button-radius);
+  background-color: white;
+  cursor: pointer;
+  transition: all var(--transition-speed);
+}
+
+.favorite-filter.active {
+  background-color: #fff8e1;
+  border-color: var(--star-color);
+}
+
+.favorite-filter i {
+  color: var(--star-color);
+  margin-right: 8px;
+}
+
+.favorite-filter:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+/* ==================== 9. IMAGE HANDLING ==================== */
+.image-upload-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+#image-preview-container {
+  width: 100%;
+  border-radius: var(--card-radius);
   overflow: hidden;
+  background-color: #f5f5f5;
+  border: 1px dashed var(--border-color);
 }
 
-.recipe-preview-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--hover-shadow);
+#image-preview {
+  width: 100%;
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--lighter-text);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 20px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
 }
 
-.recipe-preview-card h3 {
+#image-preview i {
+  font-size: 2.5rem;
   margin-bottom: 10px;
-  color: var(--primary-color);
-  font-size: 1.1rem;
+  color: #ddd;
 }
 
+#image-preview.has-image {
+  color: white;
+  text-shadow: 0 0 4px rgba(0,0,0,0.7);
+}
+
+#image-preview.has-image i,
+#image-preview.has-image span {
+  display: none;
+}
+
+.upload-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--primary-color);
+  color: white;
+  padding: 8px 15px;
+  border-radius: var(--button-radius);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all var(--transition-speed);
+}
+
+.upload-btn:hover {
+  background-color: #1a2530;
+  transform: translateY(-2px);
+}
+
+.upload-btn i {
+  margin-right: 5px;
+}
+
+/* ===== IMPROVED RECIPE DETAIL HEADER & ELEMENTS POSITIONING ===== */
+
+/* Better header organization with flexbox */
+.recipe-detail-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Group title and category together */
+.recipe-detail-title-area {
+  display: flex;
+  flex-direction: column;
+}
+
+.recipe-detail-title {
+  margin-bottom: 10px;
+  font-size: 1.8rem;
+  color: var(--primary-color);
+}
+
+/* Make category stand out even more */
+.recipe-detail-category {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  background-color: #e9f3ff; /* Slightly darker blue for better visibility */
+  color: var(--accent-color);
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(52, 152, 219, 0.3);
+}
+
+/* Position the star correctly */
+.recipe-detail-favorite {
+  margin-left: 20px;
+  align-self: flex-start;
+  margin-top: 0; /* Align with top of title */
+}
+
+.recipe-detail-favorite .favorite-btn {
+  width: 50px;
+  height: 50px;
+  background-color: #fff8e1;
+  border: 1px solid #f5e7b2;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  transition: all 0.3s;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Improved back button styling and positioning */
+.recipe-detail-actions {
+  display: flex;
+  gap: 20px;
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+  padding-bottom: 40px;
+  justify-content: center; /* Center the action buttons */
+}
+
+.recipe-detail-actions .btn-back {
+  background-color: #f8f9fa;
+  color: var(--light-text) !important;
+  border: 1px solid #e9ecef;
+  padding: 12px 15px;
+  font-weight: 500;
+}
+
+.recipe-detail-actions .btn-back:hover {
+  background-color: #e9ecef;
+  transform: translateY(-2px);
+}
+
+/* ===== FIXED STAR POSITION FOR RECIPE DETAIL PAGE ===== */
+
+/* Recipe detail header with flex layout to position elements properly */
+.recipe-detail-header {
+  display: flex;
+  align-items: flex-start; /* Align items at the top */
+  justify-content: space-between; /* Push title area and favorite button to edges */
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Title area takes up most of the space */
+.recipe-detail-title-area {
+  flex: 1; /* Take up available space */
+}
+
+/* Favorite button container - positioned at the right */
+.recipe-detail-favorite {
+  flex: 0 0 auto; /* Don't grow or shrink */
+  margin-left: 15px; /* Space from title area */
+  align-self: flex-start; /* Align at the top */
+}
+
+/* Star button styling - larger and more visible */
+.recipe-detail-favorite .favorite-btn {
+  width: 48px;
+  height: 48px;
+  background-color: #fff8e1; /* Light yellow background */
+  border: 1px solid #f5e7b2; /* Light yellow border */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem; /* Larger star icon */
+  color: #ccc; /* Gray when inactive */
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Subtle shadow */
+}
+
+.recipe-detail-favorite .favorite-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+}
+
+.recipe-detail-favorite .favorite-btn.active {
+  color: var(--star-color); /* Gold when active */
+}
+
+/* Recipe detail image */
+.recipe-detail-image {
+  width: 100%;
+  height: 300px;
+  background-color: #f5f5f5;
+  background-size: cover;
+  background-position: center;
+  border-radius: var(--card-radius);
+  margin-bottom: 20px;
+}
+
+.recipe-detail-image.no-image {
+  border: 1px dashed var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #ccc;
+}
+
+.recipe-detail-image.no-image i {
+  font-size: 3rem;
+  margin-bottom: 10px;
+}
+
+/* Top navigation with back button */
+.top-navigation {
+  margin-bottom: 20px;
+}
+
+.top-navigation .btn-back {
+  display: inline-flex;
+  align-items: center;
+  background-color: #f8f9fa;
+  color: var(--light-text) !important;
+  border: 1px solid #e9ecef;
+  padding: 8px 12px;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.top-navigation .btn-back:hover {
+  background-color: #e9ecef;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.top-navigation .btn-back i {
+  margin-right: 8px;
+}
+
+/* Top navigation with back button */
+.top-navigation {
+  margin-bottom: 20px;
+}
+
+.top-navigation .btn-back {
+  display: inline-flex;
+  align-items: center;
+  background-color: #f8f9fa;
+  color: var(--light-text) !important;
+  border: 1px solid #e9ecef;
+  padding: 8px 12px;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.top-navigation .btn-back:hover {
+  background-color: #e9ecef;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.top-navigation .btn-back i {
+  margin-right: 8px;
+}
+
+/* ===== IMPROVED RECIPE DETAIL LAYOUT AND BUTTON VISIBILITY ===== */
+
+/* Make the top back button more visible */
+.top-navigation {
+  margin-bottom: 20px;
+}
+
+.top-navigation .btn-back {
+  display: inline-flex;
+  align-items: center;
+  background-color: #e9ecef; /* Darker background for better contrast */
+  color: var(--primary-color) !important; /* Darker text color */
+  border: 1px solid #ced4da; /* More visible border */
+  padding: 10px 15px; /* More padding */
+  font-weight: 600; /* Bolder text */
+  font-size: 0.95rem;
+  border-radius: var(--button-radius);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08); /* Subtle shadow */
+}
+
+.top-navigation .btn-back:hover {
+  background-color: #dee2e6;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 5px rgba(0,0,0,0.12);
+}
+
+.top-navigation .btn-back i {
+  margin-right: 8px;
+  color: var(--accent-color); /* Blue icon */
+}
+
+/* Reorganize recipe header to put star next to category */
+.recipe-detail-header {
+  display: block; /* Change to block layout */
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.recipe-detail-title-area {
+  margin-bottom: 15px;
+}
+
+.recipe-detail-title {
+  margin-bottom: 12px;
+  font-size: 1.8rem;
+  color: var(--primary-color);
+}
+
+/* Category and star on same line */
+.recipe-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 15px; /* Space between category and star */
+}
+
+.recipe-detail-category {
+  display: inline-flex;
+  align-items: center;
+  background-color: #e9f3ff;
+  color: var(--accent-color);
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(52, 152, 219, 0.3);
+}
+
+/* Move star next to category */
+.recipe-detail-favorite {
+  margin-left: 0; /* Remove left margin */
+}
+
+.recipe-detail-favorite .favorite-btn {
+  width: 42px; /* Slightly smaller */
+  height: 42px;
+  background-color: #fff8e1;
+  border: 1px solid #f5e7b2;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* ==================== 10. DASHBOARD ==================== */
+/* Homepage specific styles */
+.recipes-section h2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.view-all {
+  font-size: 0.9rem;
+  color: var(--accent-color);
+  margin-left: auto; /* Ensures it stays right-aligned */
+}
+
+.recent-section h2,
+.favorites-section h2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+/* Recipe Preview Images */
+.recipe-preview-image {
+  width: 100%;
+  height: 150px;
+  background-color: #f5f5f5;
+  background-size: cover;
+  background-position: center;
+}
+
+.recipe-preview-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  transition: transform 0.2s;
+  background: white;
+}
+
+/* Add favorite indicator for homepage cards */
 .recipe-preview-card.is-favorite {
   border-left: 3px solid var(--star-color);
 }
 
-.card-actions {
-  margin-top: 15px;
+/* Make favorite indicator override other styles */
+#recent-recipes .recipe-preview-card.is-favorite,
+#favorite-recipes .recipe-preview-card.is-favorite {
+  border-left: 3px solid var(--star-color) !important;
+}
+
+.recipe-preview-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.recipe-preview-content {
+  padding: 15px;
+  flex-grow: 1;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
 }
 
-.empty-message {
-  color: #777;
-  font-style: italic;
-  padding: 20px;
+.recipe-preview-content h3 {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+.recipe-preview-category {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 15px;
+}
+
+/* Make the view recipe link appear at the bottom */
+.recipe-preview-content .action-btn {
+  margin-top: auto;
+  align-self: flex-start;
+}
+
+/* No data message when no recipes are available */
+.no-data {
+  grid-column: 1 / -1;
   text-align: center;
-  background-color: #f9f9f9;
+  padding: 20px;
+  background: #f9f9f9;
   border-radius: 8px;
-  width: 100%;
 }
 
+/* Add this if sections appear too close together */
+.recent-section,
+.favorites-section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* TARGETED FIX FOR HOMEPAGE CARDS - Add this at the end of your file */
+
+/* Fix homepage card images */
+.recipe-preview-image {
+  width: 100%;
+  height: 140px;
+  background-color: #f5f5f5;
+  background-size: cover;
+  background-position: center;
+}
+
+/* Fix homepage view buttons */
+.recipe-preview-content .action-btn.preview-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--accent-color);
+  color: white !important;
+  padding: 8px 12px;
+  margin-top: auto;
+  border-radius: var(--button-radius);
+  text-decoration: none;
+  transition: all var(--transition-speed);
+}
+
+.recipe-preview-content .action-btn.preview-link:hover {
+  background-color: #2980b9;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+  color: white !important;
+}
+
+/* Fix spacing in recipe preview content */
+.recipe-preview-content {
+  padding: 15px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.recipe-preview-content h3 {
+  margin: 0 0 8px 0;
+}
+
+.recipe-preview-content .recipe-preview-category {
+  margin-bottom: 15px;
+}
+
+/* Ensure section spacing is correct */
+.recent-section,
+.favorites-section {
+  margin-bottom: 30px;
+}
+
+/* Targeted fix for recipe preview cards */
+.recipe-preview-card {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background-color: white;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.recipe-preview-image {
+  width: 100%;
+  height: 140px;
+  background-color: #f5f5f5;
+  background-size: cover;
+  background-position: center;
+}
+
+.recipe-preview-image.no-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.recipe-preview-image.no-image i {
+  font-size: 2rem;
+  color: #ddd;
+}
+
+.recipe-preview-content {
+  padding: 15px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.recipe-preview-content h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+}
+
+.recipe-preview-category {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 15px;
+}
+
+.preview-link {
+  margin-top: auto;
+}
+
+/* CRITICAL FIX - HOME PAGE CARD APPEARANCE */
+#recent-recipes .recipe-preview-card,
+#favorite-recipes .recipe-preview-card {
+  border: none !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
+  background: white !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+}
+
+#recent-recipes .recipe-preview-image,
+#favorite-recipes .recipe-preview-image {
+  width: 100% !important;
+  height: 150px !important;
+  background-size: cover !important;
+  background-position: center !important;
+}
+
+#recent-recipes .action-btn.preview-link,
+#favorite-recipes .action-btn.preview-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  background-color: var(--accent-color) !important;
+  color: white !important;
+  padding: 8px 12px !important;
+  margin-top: 15px !important;
+  border-radius: 4px !important;
+}
+
+#recent-recipes .recipe-preview-content,
+#favorite-recipes .recipe-preview-content {
+  padding: 15px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex-grow: 1 !important;
+}
+
+/* Enhanced styling for dashboard stat cards */
 .recipe-stats {
   display: flex;
   gap: 20px;
-  margin-bottom: 25px;
+  margin-bottom: 30px;
+  margin-top: 20px;
 }
 
 .stat-card {
   flex: 1;
   background-color: white;
-  border-radius: 8px;
-  padding: 15px;
+  border-radius: var(--card-radius);
+  padding: 20px 15px;
   box-shadow: var(--shadow);
   text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border-top: 3px solid var(--primary-color);
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--hover-shadow);
+}
+
+.stat-card:nth-child(1) {
+  border-top-color: var(--primary-color);
+}
+
+.stat-card:nth-child(2) {
+  border-top-color: var(--star-color); 
+}
+
+.stat-card:nth-child(3) {
+  border-top-color: var(--accent-color);
 }
 
 .stat-number {
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: bold;
-  color: var(--primary-color);
   margin-bottom: 5px;
+  color: var(--primary-color);
+}
+
+.stat-card:nth-child(1) .stat-number {
+  color: var(--primary-color);
+}
+
+.stat-card:nth-child(2) .stat-number {
+  color: var(--star-color);
+}
+
+.stat-card:nth-child(3) .stat-number {
+  color: var(--accent-color);
 }
 
 .stat-label {
-  color: #666;
+  color: var(--light-text);
   font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+@media (max-width: 768px) {
+  .recipe-stats {
+    flex-direction: column;
+    gap: 15px;
+  }
 }
 
 .quick-actions {
-  margin-top: 30px;
-  margin-bottom: 40px;
-  text-align: center;
-}
-
-/* ==================== CATEGORY MANAGEMENT ==================== */
-.add-category-container {
   display: flex;
-  gap: 10px;
-  margin-top: 5px;
-}
-
-.add-category-container input {
-  flex-grow: 1;
-}
-
-.category-management {
-  margin-top: 15px;
-  background-color: #f5f5f5;
-  padding: 10px 15px;
-  border-radius: 4px;
-  border: 1px solid var(--border-color);
-}
-
-.category-management h4 {
-  margin-bottom: 10px;
-  font-size: 1rem;
-  color: var(--primary-color);
-}
-
-.category-list {
-  list-style: none;
-  padding: 0;
-}
-
-.category-list li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 5px 0;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.category-list li:last-child {
-  border-bottom: none;
-}
-
-.no-categories {
-  font-style: italic;
-  font-size: 0.9rem;
-  color: #666;
-}
-
-/* ==================== HELP & TOOLTIPS ==================== */
-.tooltip-help {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background-color: white;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  cursor: pointer;
-  z-index: 100;
+  margin-top: 40px;
+  margin-bottom: 60px; /* Increased bottom margin */
+  width: 100%;
 }
 
-.tooltip-help i {
-  color: var(--primary-color);
-  font-size: 1.2rem;
+.quick-actions .btn {
+  min-width: 200px; /* Makes button more substantial */
+  justify-content: center;
 }
 
-.tooltip-help .tooltip-text {
-  position: absolute;
-  bottom: 50px;
-  right: 0;
-  background-color: #333;
-  color: white;
-  padding: 10px 15px;
-  border-radius: 4px;
-  width: 250px;
-  font-size: 0.9rem;
-  visibility: hidden;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.tooltip-help:hover .tooltip-text {
-  visibility: visible;
-  opacity: 1;
-}
-
-/* ==================== LOADING STATE ==================== */
-.loading {
+/* Make the welcome message nicer on dashboard */
+#dashboard-view > h1 {
   text-align: center;
-  padding: 30px;
-  color: #666;
-  font-style: italic;
+  margin: 30px 0;
 }
 
-/* ==================== AUTHENTICATION PAGES ==================== */
+/* ==================== 11. AUTH PAGES ==================== */
 .auth-container {
   display: flex;
   min-height: 100vh;
@@ -759,12 +1445,6 @@ input, textarea, select {
   display: none;
 }
 
-@media (min-width: 768px) {
-  .auth-image {
-    display: block;
-  }
-}
-
 .image-overlay {
   position: absolute;
   top: 0;
@@ -777,7 +1457,6 @@ input, textarea, select {
 .logo-large {
   font-size: 2rem;
   font-weight: bold;
-  color: var(--primary-color);
   margin-bottom: 30px;
   text-align: center;
 }
@@ -794,45 +1473,7 @@ input, textarea, select {
 
 .auth-subtitle {
   text-align: center;
-  color: #666;
-  margin-bottom: 20px;
-}
-
-.auth-form {
-  margin-bottom: 20px;
-}
-
-.input-with-icon {
-  position: relative;
-}
-
-.input-with-icon i {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #666;
-}
-
-.input-with-icon input {
-  padding-left: 40px;
-}
-
-.btn-block {
-  width: 100%;
-  margin-top: 25px;
-  padding: 12px;
-  font-size: 1.1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-block i {
-  margin-right: 8px;
-}
-
-.auth-form .form-group {
+  color: var(--light-text);
   margin-bottom: 20px;
 }
 
@@ -840,17 +1481,7 @@ input, textarea, select {
   text-align: center;
   margin-top: auto;
   padding-top: 20px;
-  color: #666;
-}
-
-.auth-footer a {
-  color: var(--accent-color);
-  text-decoration: none;
-  font-weight: bold;
-}
-
-.auth-footer a:hover {
-  text-decoration: underline;
+  color: var(--light-text);
 }
 
 /* Animation effects */
@@ -869,32 +1500,7 @@ input, textarea, select {
   }
 }
 
-.input-with-icon input:focus + i {
-  color: var(--accent-color);
-}
-
-.auth-form input {
-  transition: border-color 0.3s, box-shadow 0.3s;
-}
-
-.auth-form input:focus {
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
-}
-
-/* ==================== SUCCESS MESSAGE ==================== */
-/* Success message for form account creation */
-.success-message {
-  background-color: #e7f7ed;
-  color: #28a745;
-  padding: 10px;
-  margin-bottom: 15px;
-  border-radius: 4px;
-  border: 1px solid #28a745;
-  text-align: center;
-}
-
-/* ==================== MODAL STYLES ==================== */
+/* ==================== 12. MODALS ==================== */
 .modal {
   position: fixed;
   top: 0;
@@ -931,8 +1537,8 @@ input, textarea, select {
 }
 
 .modal-container {
-  background-color: white;
-  border-radius: 8px;
+  background-color: var(--card-bg);
+  border-radius: var(--card-radius);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
   width: 90%;
   max-width: 500px;
@@ -957,6 +1563,7 @@ input, textarea, select {
 .modal-header h3 {
   margin: 0;
   font-size: 1.2rem;
+  color: white;
 }
 
 .modal-header h3 i {
@@ -993,7 +1600,178 @@ input, textarea, select {
   animation: modalFadeIn 0.3s ease-out forwards;
 }
 
-/* ==================== RESPONSIVE ADJUSTMENTS ==================== */
+/* ==================== 13. TOOLTIPS & HELPERS ==================== */
+.tooltip-help {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  cursor: pointer;
+  z-index: 100;
+}
+
+.tooltip-help i {
+  color: var(--primary-color);
+  font-size: 1.2rem;
+}
+
+.tooltip-help .tooltip-text {
+  position: absolute;
+  bottom: 50px;
+  right: 0;
+  background-color: #333;
+  color: white;
+  padding: 10px 15px;
+  border-radius: var(--button-radius);
+  width: 250px;
+  font-size: 0.9rem;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.tooltip-help:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Loading state */
+.loading {
+  text-align: center;
+  padding: 30px;
+  color: var(--light-text);
+  font-style: italic;
+}
+
+/* Filter bar */
+.filters-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  background-color: var(--card-bg);
+  padding: 15px;
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow);
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  margin-right: 20px;
+}
+
+.filter-group label {
+  margin-right: 10px;
+  margin-bottom: 0;
+}
+
+.filter-group select {
+  width: auto;
+}
+
+.recipe-count {
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  color: var(--light-text);
+}
+
+#recipe-count-display {
+  font-weight: bold;
+}
+
+/* ==================== 14. CATEGORY MANAGEMENT ==================== */
+.category-management {
+  margin-top: 15px;
+  background-color: #f5f5f5;
+  padding: 15px;
+  border-radius: var(--button-radius);
+  border: 1px solid var(--border-color);
+}
+
+.category-management h4 {
+  margin-bottom: 10px;
+  font-size: 1rem;
+}
+
+.add-category-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.add-category-container input {
+  flex-grow: 1;
+}
+
+.category-list {
+  list-style: none;
+  padding: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.category-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 5px;
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color var(--transition-speed);
+}
+
+.category-list li:last-child {
+  border-bottom: none;
+}
+
+.category-list li:hover {
+  background-color: #f0f0f0;
+}
+
+.category-list li span {
+  font-size: 0.95rem;
+  color: var(--text-color);
+}
+
+.btn-delete {
+  background: none;
+  border: none;
+  color: #ccc;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: all var(--transition-speed);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-delete:hover {
+  background-color: #ffebee;
+  color: var(--secondary-color);
+  transform: scale(1.1);
+}
+
+.no-categories {
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--light-text);
+}
+
+/* ==================== 15. RESPONSIVE ADJUSTMENTS ==================== */
+@media (min-width: 768px) {
+  .auth-image {
+    display: block;
+  }
+}
+
 @media (max-width: 768px) {
   .recipe-stats {
     flex-direction: column;
@@ -1014,7 +1792,34 @@ input, textarea, select {
     width: 100%;
   }
   
-  .recipes-grid {
+  .recipe-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .recipes-container {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+  
+  .recipe-card-image {
+    height: 140px;
+  }
+}
+
+@media (max-width: 480px) {
+  .recipe-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .recipe-card-actions {
+    flex-wrap: wrap;
+  }
+  
+  .action-btn {
+    flex: 1 0 auto;
+    text-align: center;
   }
 }

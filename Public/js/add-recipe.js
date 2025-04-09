@@ -21,6 +21,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Set up category management
     setupCategoryManagement();
     
+    // Set up image upload functionality
+    setupImageUpload();
+    
+    // Debug check for favorite checkbox
+    const favoriteCheckbox = document.getElementById('is_favorite');
+    console.log('Favorite checkbox found on page load:', !!favoriteCheckbox);
+    
     console.log('Add recipe page initialized');
 });
 
@@ -214,7 +221,56 @@ async function deleteCategory(e) {
     }
 }
 
-// Handle form submission
+// Set up image upload preview and functionality
+function setupImageUpload() {
+    const imageInput = document.getElementById('recipe-image');
+    const imagePreview = document.getElementById('image-preview');
+    const removeImageBtn = document.getElementById('remove-image');
+    
+    if (!imageInput || !imagePreview) return;
+    
+    // Handle image selection
+    imageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        // Validate file is an image
+        if (!file.type.match('image.*')) {
+            alert('Please select an image file');
+            return;
+        }
+        
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Image size must be less than 5MB');
+            imageInput.value = '';
+            return;
+        }
+        
+        // Create preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.style.backgroundImage = `url('${e.target.result}')`;
+            imagePreview.classList.add('has-image');
+            if (removeImageBtn) {
+                removeImageBtn.style.display = 'block';
+            }
+        };
+        reader.readAsDataURL(file);
+    });
+    
+    // Handle remove image button
+    if (removeImageBtn) {
+        removeImageBtn.addEventListener('click', () => {
+            imageInput.value = '';
+            imagePreview.style.backgroundImage = '';
+            imagePreview.classList.remove('has-image');
+            removeImageBtn.style.display = 'none';
+        });
+    }
+}
+
+// Handle form submission with image upload and favorites
 async function handleFormSubmit(e) {
     e.preventDefault();
     
@@ -237,12 +293,47 @@ async function handleFormSubmit(e) {
     try {
         const user = JSON.parse(localStorage.getItem('user'));
         
+        // Debug favorite checkbox
+        const favoriteCheckbox = document.getElementById('is_favorite');
+        console.log('Favorite checkbox found:', !!favoriteCheckbox);
+        console.log('Favorite checkbox ID:', favoriteCheckbox?.id);
+        console.log('Favorite checkbox checked:', favoriteCheckbox?.checked);
+        
+        // Handle image upload first if image is selected
+        let imageUrl = null;
+        const imageInput = document.getElementById('recipe-image');
+        
+        if (imageInput && imageInput.files && imageInput.files[0]) {
+            const formData = new FormData();
+            formData.append('recipeImage', imageInput.files[0]);
+            
+            // Upload the image
+            const uploadResponse = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!uploadResponse.ok) {
+                throw new Error('Failed to upload image');
+            }
+            
+            const uploadResult = await uploadResponse.json();
+            imageUrl = uploadResult.imageUrl;
+        }
+        
+        // Get favorite value explicitly to avoid issues
+        const isFavorite = favoriteCheckbox && favoriteCheckbox.checked ? 1 : 0;
+        console.log('Is favorite value:', isFavorite);
+        
+        // Now create the recipe with image url if we have one
         const recipeData = {
             title: form.title.value,
             ingredients: form.ingredients.value,
             instructions: form.instructions.value,
             category_id: form.category.value || null,
-            user_id: user.id
+            user_id: user.id,
+            image_url: imageUrl,
+            is_favorite: isFavorite
         };
         
         console.log('Submitting recipe:', recipeData);
@@ -260,7 +351,8 @@ async function handleFormSubmit(e) {
             throw new Error(error.error || 'Failed to create recipe');
         }
         
-        console.log('Recipe created successfully');
+        const result = await response.json();
+        console.log('Recipe created successfully:', result);
         
         // Redirect to recipes page on success
         window.location.href = '/recipes.html';

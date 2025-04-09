@@ -49,20 +49,41 @@
             
             <div class="form-group">
                 <label for="category">Category</label>
-                <select id="category" name="category" required>
+                <select id="category" name="category">
                     <option value="">Select a category</option>
                     <!-- Categories will be loaded here with grouping -->
                 </select>
             </div>
             
-            <div class="form-group favorite-option">
-                <label class="checkbox-label">
+            <!-- Image Upload Section -->
+            <div class="form-group">
+                <label for="recipe-image">Recipe Photo</label>
+                <div class="image-upload-container">
+                    <div id="image-preview-container">
+                        <div id="image-preview">
+                            <i class="fas fa-image"></i>
+                            <span>No image selected</span>
+                        </div>
+                    </div>
+                    <div class="upload-controls">
+                        <label for="recipe-image" class="upload-btn">
+                            <i class="fas fa-upload"></i> Choose Image
+                            <input type="file" id="recipe-image" name="recipe-image" accept="image/*" hidden>
+                        </label>
+                        <button type="button" id="remove-image" class="btn btn-danger" style="display: none;">
+                            <i class="fas fa-trash"></i> Remove
+                        </button>
+                    </div>
+                    <small>Upload a photo of your dish (optional, max 5MB)</small>
+                </div>
+            </div>
+            
+            <!-- Favorite Checkbox with Star Styling -->
+            <div class="form-group checkbox-group">
+                <label class="star-checkbox">
                     <input type="checkbox" id="is_favorite" name="is_favorite">
-                    <span class="checkbox-text">
-                        <i class="far fa-star"></i>
-                        <i class="fas fa-star checked-star"></i>
-                        Mark as favorite
-                    </span>
+                    <span class="checkmark"></span>
+                    Mark as Favorite
                 </label>
             </div>
             
@@ -90,7 +111,7 @@
     <!-- Helpful tip -->
     <div class="tooltip-help">
         <i class="fas fa-question-circle"></i>
-        <span class="tooltip-text">You can mark your favorite recipes with the star!</span>
+        <span class="tooltip-text">You can create new categories or simply edit your recipe details.</span>
     </div>
 </body>
 </html>

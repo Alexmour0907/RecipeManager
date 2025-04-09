@@ -1,3 +1,8 @@
+/**
+ * Recipe Manager - Recipes Page
+ * Handles displaying, filtering, and managing recipes
+ */
+
 // Load recipes and categories when page loads
 document.addEventListener('DOMContentLoaded', async () => {
     // Check authentication
@@ -146,7 +151,7 @@ async function loadRecipes(categoryId = null, favoritesOnly = false) {
         const recipes = await response.json();
         console.log('Recipes loaded:', recipes);
         
-        // Update recipe count - THIS IS THE NEW CODE
+        // Update recipe count
         const countDisplay = document.getElementById('recipe-count-display');
         if (countDisplay) {
             countDisplay.textContent = recipes.length;
@@ -159,28 +164,10 @@ async function loadRecipes(categoryId = null, favoritesOnly = false) {
             return;
         }
         
-        // Create recipe cards
+        // Create recipe cards with images
         recipes.forEach(recipe => {
-            const recipeCard = document.createElement('div');
-            recipeCard.className = 'recipe-card';
-            if (recipe.is_favorite) {
-                recipeCard.classList.add('is-favorite');
-            }
-            
-            recipeCard.innerHTML = `
-                <div class="recipe-header">
-                    <h3>${recipe.title}</h3>
-                    <button class="favorite-btn ${recipe.is_favorite ? 'active' : ''}" data-id="${recipe.id}">
-                        <i class="${recipe.is_favorite ? 'fas' : 'far'} fa-star"></i>
-                    </button>
-                </div>
-                <div class="recipe-actions">
-                    <a href="/recipe-detail.html?id=${recipe.id}" class="btn btn-sm">View</a>
-                    <a href="/edit-recipe.html?id=${recipe.id}" class="btn btn-sm">Edit</a>
-                    <button class="btn btn-sm btn-danger delete-recipe" data-id="${recipe.id}">Delete</button>
-                </div>
-            `;
-            recipesContainer.appendChild(recipeCard);
+            const card = createRecipeCard(recipe);
+            recipesContainer.appendChild(card);
         });
         
         // Add event listeners for interactive buttons
@@ -190,6 +177,49 @@ async function loadRecipes(categoryId = null, favoritesOnly = false) {
         console.error('Error loading recipes:', err);
         recipesContainer.innerHTML = `<p class="error-message">Error loading recipes: ${err.message}</p>`;
     }
+}
+
+// Create a recipe card with image support
+// Update this function in recipes.js
+function createRecipeCard(recipe) {
+    const card = document.createElement('div');
+    card.className = 'recipe-card';
+    card.dataset.id = recipe.id;
+    
+    if (recipe.is_favorite) {
+        card.classList.add('is-favorite');
+    }
+    
+    // Create the image part
+    const imageSection = recipe.image_url 
+        ? `<div class="recipe-card-image" style="background-image: url('${recipe.image_url}')"></div>`
+        : `<div class="recipe-card-image no-image">
+             <i class="fas fa-utensils"></i>
+           </div>`;
+    
+    card.innerHTML = `
+        ${imageSection}
+        <div class="recipe-card-content">
+            <h3>${recipe.title}</h3>
+            <div class="recipe-card-category">${recipe.category_name || 'Uncategorized'}</div>
+        </div>
+        <div class="recipe-card-actions">
+            <button class="favorite-btn ${recipe.is_favorite ? 'active' : ''}" data-id="${recipe.id}">
+                <i class="${recipe.is_favorite ? 'fas' : 'far'} fa-star"></i>
+            </button>
+            <a href="/recipe-detail.html?id=${recipe.id}" class="action-btn btn-view">
+                <i class="fas fa-eye"></i> View
+            </a>
+            <a href="/edit-recipe.html?id=${recipe.id}" class="action-btn btn-edit">
+                <i class="fas fa-edit"></i> Edit
+            </a>
+            <button class="action-btn btn-delete delete-recipe" data-id="${recipe.id}">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+        </div>
+    `;
+    
+    return card;
 }
 
 // Add event listeners to recipe buttons
@@ -217,10 +247,22 @@ async function deleteRecipe(e) {
             });
             
             if (response.ok) {
-                // Reload the current recipe list after deletion
-                const categoryId = document.getElementById('category-select')?.value || null;
-                const showFavoritesOnly = document.getElementById('favorites-filter')?.classList.contains('active') || false;
-                await loadRecipes(categoryId, showFavoritesOnly);
+                // Visual feedback before reload
+                const card = e.target.closest('.recipe-card');
+                if (card) {
+                    card.classList.add('deleting');
+                    setTimeout(() => {
+                        // Reload the current recipe list after deletion
+                        const categoryId = document.getElementById('category-select')?.value || null;
+                        const showFavoritesOnly = document.getElementById('favorites-filter')?.classList.contains('active') || false;
+                        loadRecipes(categoryId, showFavoritesOnly);
+                    }, 300);
+                } else {
+                    // Fallback if card element not found
+                    const categoryId = document.getElementById('category-select')?.value || null;
+                    const showFavoritesOnly = document.getElementById('favorites-filter')?.classList.contains('active') || false;
+                    loadRecipes(categoryId, showFavoritesOnly);
+                }
             } else {
                 const error = await response.json();
                 alert(error.message || 'Failed to delete recipe');

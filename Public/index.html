@@ -3,22 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recipe Manager</title>
+    <meta name="description" content="Recipe Manager - Store and organize your favorite recipes">
+    <title>Recipe Manager - Home</title>
+    <!-- Stylesheets -->
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <!-- Scripts -->
     <script src="/js/auth.js" defer></script>
     <script src="/js/main.js" defer></script>
-    <script src="/js/home.js" defer></script>
 </head>
 <body>
     <div class="container">
         <!-- Login view (shown when not logged in) -->
         <div id="login-view">
-            <h1>Welcome to Recipe Manager</h1>
-            <p class="intro-text">Store, organize and manage all your favorite recipes in one place.</p>
-            <div class="home-actions">
-                <a href="/login.html" class="btn">Login</a>
-                <a href="/register.html" class="btn">Register</a>
+            <div class="welcome-section">
+                <h1>Welcome to Recipe Manager</h1>
+                <p class="intro-text">Store, organize and manage all your favorite recipes in one place.</p>
+                <div class="home-actions">
+                    <!-- Login/Register buttons will be inserted here by JavaScript -->
+                </div>
             </div>
         </div>
         
@@ -34,7 +37,9 @@
                 </div>
             </nav>
             
-            <h1>Welcome, <span id="username-display"></span>!</h1>
+            <header class="page-header">
+                <h1>Welcome, <span id="username-display"></span>!</h1>
+            </header>
             
             <!-- Stats Cards -->
             <div class="recipe-stats">
@@ -43,8 +48,8 @@
                     <div class="stat-label">Total Recipes</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number" id="favorite-recipes">0</div>
-                    <div class="stat-label">Favorite Recipes</div>
+                    <div class="stat-number" id="favorite-recipes-count">0</div>
+                    <div class="stat-label">Favorites</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="total-categories">0</div>
@@ -55,16 +60,16 @@
             <!-- Recent Recipes -->
             <section class="recent-section">
                 <h2>Recently Added <a href="/recipes.html" class="view-all">View All</a></h2>
-                <div id="recent-recipes" class="recipe-preview-container">
-                    <div class="loading">Loading recipes...</div>
+                <div id="recent-recipes" class="recipe-grid">
+                    <!-- Recipe cards will be dynamically inserted here by JavaScript -->
                 </div>
             </section>
             
             <!-- Favorite Recipes -->
             <section class="favorites-section">
                 <h2>Favorite Recipes <a href="/recipes.html?favorites=1" class="view-all">View All</a></h2>
-                <div id="favorite-recipes-container" class="recipe-preview-container">
-                    <div class="loading">Loading favorites...</div>
+                <div id="favorite-recipes" class="recipe-grid">
+                    <!-- Recipe cards will be dynamically inserted here by JavaScript -->
                 </div>
             </section>
             

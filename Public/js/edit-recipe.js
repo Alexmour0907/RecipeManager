@@ -333,3 +333,219 @@ async function handleFormSubmit(e, recipeId) {
         }
     }
 }
+
+document.addEventListener('DOMContentLoaded', async () => {
+    setupImageUpload();
+});
+
+// Set up image upload preview and functionality
+function setupImageUpload() {
+    const imageInput = document.getElementById('recipe-image');
+    const imagePreview = document.getElementById('image-preview');
+    const removeImageBtn = document.getElementById('remove-image');
+    
+    if (!imageInput || !imagePreview) return;
+    
+    // Handle image selection
+    imageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        // Validate file is an image
+        if (!file.type.match('image.*')) {
+            alert('Please select an image file');
+            return;
+        }
+        
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Image size must be less than 5MB');
+            imageInput.value = '';
+            return;
+        }
+        
+        // Create preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.style.backgroundImage = `url('${e.target.result}')`;
+            imagePreview.classList.add('has-image');
+            if (removeImageBtn) {
+                removeImageBtn.style.display = 'block';
+            }
+        };
+        reader.readAsDataURL(file);
+    });
+    
+    // Handle remove image button
+    if (removeImageBtn) {
+        removeImageBtn.addEventListener('click', () => {
+            imageInput.value = '';
+            imagePreview.style.backgroundImage = '';
+            imagePreview.classList.remove('has-image');
+            removeImageBtn.style.display = 'none';
+            
+            // Set a hidden input to indicate image should be removed
+            const removeImageFlag = document.getElementById('remove-image-flag') || document.createElement('input');
+            removeImageFlag.type = 'hidden';
+            removeImageFlag.id = 'remove-image-flag';
+            removeImageFlag.name = 'remove-image-flag';
+            removeImageFlag.value = '1';
+            imageInput.parentNode.appendChild(removeImageFlag);
+        });
+    }
+}
+
+// When loading recipe data, show the existing image
+// Update the loadRecipe function to handle the favorite checkbox
+async function loadRecipe(recipeId) {
+    try {
+        const response = await fetch(`/recipes/${recipeId}`);
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch recipe');
+        }
+        
+        const recipe = await response.json();
+        console.log('Recipe loaded:', recipe);
+        
+        // Populate form fields
+        document.getElementById('title').value = recipe.title;
+        document.getElementById('ingredients').value = recipe.ingredients;
+        document.getElementById('instructions').value = recipe.instructions;
+        
+        // Set category
+        const categorySelect = document.getElementById('category');
+        if (categorySelect && recipe.category_id) {
+            categorySelect.value = recipe.category_id;
+        }
+        
+        // Set favorite status - THIS LINE FIXES YOUR ISSUE
+        const favoriteCheckbox = document.getElementById('is_favorite');
+        if (favoriteCheckbox) {
+            favoriteCheckbox.checked = recipe.is_favorite === 1;
+        }
+        
+        // Set image preview if the recipe has an image
+        if (recipe.image_url) {
+            const imagePreview = document.getElementById('image-preview');
+            const removeImageBtn = document.getElementById('remove-image');
+            
+            if (imagePreview) {
+                imagePreview.style.backgroundImage = `url('${recipe.image_url}')`;
+                imagePreview.classList.add('has-image');
+                
+                if (removeImageBtn) {
+                    removeImageBtn.style.display = 'block';
+                }
+            }
+        }
+        
+    } catch (err) {
+        console.error('Error loading recipe:', err);
+        alert('Error loading recipe data. Redirecting to recipes page.');
+        window.location.href = '/recipes.html';
+    }
+}
+
+// Update handleFormSubmit to handle image upload/removal
+async function handleFormSubmit(e, recipeId) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const errorElement = document.getElementById('form-error');
+    
+    // Disable button and show loading state
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Updating Recipe...';
+    }
+    
+    // Clear previous errors
+    if (errorElement) {
+        errorElement.textContent = '';
+        errorElement.style.display = 'none';
+    }
+    
+    try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        
+        // Get current image URL or null if being removed
+        let imageUrl = null;
+        const removeImageFlag = document.getElementById('remove-image-flag');
+        
+        // Check if we have a new image to upload
+        const imageInput = document.getElementById('recipe-image');
+        
+        if (imageInput && imageInput.files && imageInput.files[0]) {
+            // Upload the new image
+            const formData = new FormData();
+            formData.append('recipeImage', imageInput.files[0]);
+            
+            const uploadResponse = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!uploadResponse.ok) {
+                throw new Error('Failed to upload image');
+            }
+            
+            const uploadResult = await uploadResponse.json();
+            imageUrl = uploadResult.imageUrl;
+        } else if (!removeImageFlag) {
+            // Keep existing image (we need to fetch it)
+            const recipeResponse = await fetch(`/recipes/${recipeId}`);
+            if (recipeResponse.ok) {
+                const recipeData = await recipeResponse.json();
+                imageUrl = recipeData.image_url;
+            }
+        }
+        // If removeImageFlag exists, imageUrl stays null to remove the image
+        
+        // Now update the recipe with image url
+        const recipeData = {
+            title: form.title.value,
+            ingredients: form.ingredients.value,
+            instructions: form.instructions.value,
+            category_id: form.category.value || null,
+            user_id: user.id,
+            is_favorite: document.getElementById('is_favorite')?.checked ? 1 : 0,
+            image_url: imageUrl
+        };
+        
+        console.log('Updating recipe:', recipeData);
+        
+        const response = await fetch(`/recipes/${recipeId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(recipeData)
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to update recipe');
+        }
+        
+        console.log('Recipe updated successfully');
+        
+        // Redirect to recipes page on success
+        window.location.href = '/recipes.html';
+    } catch (err) {
+        console.error('Error updating recipe:', err);
+        
+        // Show error message
+        if (errorElement) {
+            errorElement.textContent = err.message;
+            errorElement.style.display = 'block';
+        }
+        
+        // Re-enable button
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Update Recipe';
+        }
+    }
+}

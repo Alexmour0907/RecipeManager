@@ -16,8 +16,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!isAuthPage) {
         // Check if user is logged in
         const user = JSON.parse(localStorage.getItem('user'));
-        if (!user || !user.id) {
-            // Redirect to login page if not logged in
+        const publicPages = ['/', '/index.html', '/login.html', '/register.html'];
+        const currentPath = window.location.pathname;
+        
+        // If on a protected page and not logged in, redirect to login
+        if (!publicPages.includes(currentPath) && (!user || !user.id)) {
             window.location.href = '/login.html';
             return;
         }
@@ -70,14 +73,16 @@ function setupEventListeners() {
         registerForm.addEventListener('submit', handleRegister);
     }
     
-    // Logout button
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            showLogoutConfirmation();
-        });
-    }
+    // Logout buttons - both main nav and homepage
+    const logoutButtons = document.querySelectorAll('#logout-btn, #logout-btn-home');
+    logoutButtons.forEach(btn => {
+        if (btn) {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showLogoutConfirmation();
+            });
+        }
+    });
     
     // Logout modal buttons
     const cancelLogoutBtn = document.getElementById('cancel-logout');
@@ -133,7 +138,13 @@ function hideLogoutConfirmation() {
  */
 function performLogout() {
     localStorage.removeItem('user');
-    window.location.href = '/login.html';
+    
+    // Redirect to home or reload if already home
+    if (window.location.pathname === '/' || window.location.pathname.endsWith('index.html')) {
+        window.location.reload();
+    } else {
+        window.location.href = '/';
+    }
 }
 
 /**
@@ -266,4 +277,18 @@ async function handleRegister(e) {
             submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
         }
     }
+}
+
+/**
+ * Perform the actual logout action
+ */
+function performLogout() {
+    // Clear user data from local storage
+    localStorage.removeItem('user');
+    
+    // Hide the logout confirmation modal
+    hideLogoutConfirmation();
+    
+    // Redirect to login page instead of home page
+    window.location.href = '/login.html';
 }

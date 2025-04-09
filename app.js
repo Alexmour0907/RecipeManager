@@ -1,13 +1,16 @@
 const express = require('express');
 const Database = require('better-sqlite3');
 const bcrypt = require('bcrypt');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const app = express();
 const port = 3000;
 
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
+app.use(express.static('Public'));
 
 // Set up database
 const db = new Database('./Database/RecipeManager.db');
@@ -43,6 +46,7 @@ function initializeDatabase() {
       category_id INTEGER,
       user_id INTEGER NOT NULL,
       is_favorite INTEGER DEFAULT 0,
+      image_url TEXT,
       FOREIGN KEY (category_id) REFERENCES categories (id),
       FOREIGN KEY (user_id) REFERENCES users (id)
     )
@@ -52,14 +56,22 @@ function initializeDatabase() {
 // Run database initialization
 initializeDatabase();
 
-// Check if recipes table has is_favorite column, add if needed
+// Check if recipes table has necessary columns, add if needed
 try {
   const tableInfo = db.prepare("PRAGMA table_info(recipes)").all();
-  const hasFavoriteColumn = tableInfo.some(column => column.name === 'is_favorite');
   
+  // Check for is_favorite column
+  const hasFavoriteColumn = tableInfo.some(column => column.name === 'is_favorite');
   if (!hasFavoriteColumn) {
     db.prepare("ALTER TABLE recipes ADD COLUMN is_favorite INTEGER DEFAULT 0").run();
     console.log("Added is_favorite column to recipes table");
+  }
+  
+  // Check for image_url column
+  const hasImageUrlColumn = tableInfo.some(column => column.name === 'image_url');
+  if (!hasImageUrlColumn) {
+    db.prepare("ALTER TABLE recipes ADD COLUMN image_url TEXT").run();
+    console.log("Added image_url column to recipes table");
   }
 } catch (err) {
   console.error("Error updating recipes table:", err);
@@ -87,6 +99,42 @@ function addDefaultCategories() {
 
 // Call function to add default categories
 addDefaultCategories();
+
+// Configure multer for image storage
+const uploadDir = './Public/uploads';
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    // Create uploads directory if it doesn't exist
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    // Create unique filename: timestamp-originalname
+    const uniqueName = Date.now() + '-' + file.originalname.replace(/\s+/g, '-');
+    cb(null, uniqueName);
+  }
+});
+
+// Set up file filter to only accept images
+const fileFilter = (req, file, cb) => {
+  // Accept only image files
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only image files are allowed!'), false);
+  }
+};
+
+// Initialize multer with our configuration
+const upload = multer({ 
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
 
 // ======================== USER ROUTES ========================
 
@@ -185,28 +233,58 @@ app.delete('/users/:id', async (req, res) => {
   }
 });
 
+// ======================== IMAGE UPLOAD ROUTE ========================
+
+// Handle image uploads
+app.post('/upload', upload.single('recipeImage'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    
+    // Send back the path to the uploaded file
+    const imageUrl = `/uploads/${req.file.filename}`;
+    res.json({ imageUrl });
+  } catch (err) {
+    console.error('Error uploading file:', err);
+    res.status(500).json({ error: 'Failed to upload file' });
+  }
+});
+
 // ======================== RECIPE ROUTES ========================
 
-// Get all recipes for user
+// Get all recipes for user (with category names)
 app.get('/recipes', (req, res) => {
   const userId = req.query.user_id;
   const favoritesOnly = req.query.favorites === '1';
+  const categoryId = req.query.category_id;
   
   try {
     if (!userId) {
       return res.status(400).json({ error: 'User ID is required' });
     }
     
-    let query = 'SELECT * FROM recipes WHERE user_id = ?';
+    let query = `
+      SELECT r.*, c.name as category_name 
+      FROM recipes r
+      LEFT JOIN categories c ON r.category_id = c.id
+      WHERE r.user_id = ?
+    `;
     let params = [userId];
     
     // Add filter for favorites if requested
     if (favoritesOnly) {
-      query += ' AND is_favorite = 1';
+      query += ' AND r.is_favorite = 1';
+    }
+    
+    // Add filter for category if provided
+    if (categoryId) {
+      query += ' AND r.category_id = ?';
+      params.push(categoryId);
     }
     
     // Add ordering
-    query += ' ORDER BY id DESC';
+    query += ' ORDER BY r.id DESC';
     
     const recipes = db.prepare(query).all(...params);
     res.json(recipes);
@@ -216,13 +294,20 @@ app.get('/recipes', (req, res) => {
   }
 });
 
-// Get single recipe by ID
+// Get single recipe by ID (with category name)
 app.get('/recipes/:id', (req, res) => {
   try {
-    const recipe = db.prepare('SELECT * FROM recipes WHERE id = ?').get(req.params.id);
+    const recipe = db.prepare(`
+      SELECT r.*, c.name as category_name 
+      FROM recipes r
+      LEFT JOIN categories c ON r.category_id = c.id
+      WHERE r.id = ?
+    `).get(req.params.id);
+    
     if (!recipe) {
       return res.status(404).json({ error: 'Recipe not found' });
     }
+    
     res.json(recipe);
   } catch (err) {
     console.error('Get recipe error:', err);
@@ -231,63 +316,57 @@ app.get('/recipes/:id', (req, res) => {
 });
 
 // Create new recipe
-app.post('/recipes', (req, res) => {
-  const { title, ingredients, instructions, category_id, user_id } = req.body;
-  
+app.post('/recipes', async (req, res) => {
   try {
+    const { title, ingredients, instructions, category_id, user_id, image_url, is_favorite } = req.body;
+    
+    // Debug logging
+    console.log('Creating recipe with data:', req.body);
+    console.log('is_favorite value received:', is_favorite);
+    
     // Validate required fields
-    if (!title || !ingredients || !instructions) {
+    if (!title || !ingredients || !instructions || !user_id) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-
-    if (!user_id) {
-      return res.status(401).json({ error: 'User must be logged in to create a recipe' });
-    }
-
-    const stmt = db.prepare(
-      'INSERT INTO recipes (title, ingredients, instructions, category_id, user_id, is_favorite) VALUES (?, ?, ?, ?, ?, 0)'
-    );
-    const result = stmt.run(title, ingredients, instructions, category_id, user_id);
     
-    res.status(201).json({
-      id: result.lastInsertRowid,
-      message: 'Recipe created successfully'
-    });
+    const result = db.prepare(`
+      INSERT INTO recipes (title, ingredients, instructions, category_id, user_id, is_favorite, image_url) 
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(title, ingredients, instructions, category_id || null, user_id, is_favorite || 0, image_url || null);
+    
+    res.status(201).json({ id: result.lastInsertRowid });
   } catch (err) {
-    console.error('Create recipe error:', err);
-    res.status(400).json({ error: 'Failed to create recipe' });
+    console.error('Error creating recipe:', err);
+    res.status(500).json({ error: 'Failed to create recipe' });
   }
 });
 
 // Update existing recipe
-app.put('/recipes/:id', (req, res) => {
-  const { title, ingredients, instructions, category_id, user_id } = req.body;
-  
+app.put('/recipes/:id', async (req, res) => {
   try {
+    const { id } = req.params;
+    const { title, ingredients, instructions, category_id, user_id, is_favorite, image_url } = req.body;
+    
     // Validate required fields
-    if (!title || !ingredients || !instructions) {
+    if (!title || !ingredients || !instructions || !user_id) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-
-    // Check if recipe exists and if user is authorized to modify it
-    const existingRecipe = db.prepare('SELECT * FROM recipes WHERE id = ?').get(req.params.id);
-    if (!existingRecipe) {
-      return res.status(404).json({ error: 'Recipe not found' });
-    }
     
-    if (user_id && existingRecipe.user_id != user_id) {
-      return res.status(403).json({ error: 'Not authorized to modify this recipe' });
+    // Update with image_url field
+    const result = db.prepare(`
+      UPDATE recipes 
+      SET title = ?, ingredients = ?, instructions = ?, category_id = ?, is_favorite = ?, image_url = ?
+      WHERE id = ? AND user_id = ?
+    `).run(title, ingredients, instructions, category_id || null, is_favorite || 0, image_url, id, user_id);
+    
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Recipe not found or you do not have permission to edit it' });
     }
-
-    const stmt = db.prepare(
-      'UPDATE recipes SET title = ?, ingredients = ?, instructions = ?, category_id = ? WHERE id = ?'
-    );
-    const result = stmt.run(title, ingredients, instructions, category_id, req.params.id);
     
     res.json({ message: 'Recipe updated successfully' });
   } catch (err) {
-    console.error('Update recipe error:', err);
-    res.status(400).json({ error: 'Failed to update recipe' });
+    console.error('Error updating recipe:', err);
+    res.status(500).json({ error: 'Failed to update recipe' });
   }
 });
 
@@ -399,8 +478,13 @@ app.get('/categories/:id/recipes', (req, res) => {
     }
     
     // Only return recipes in this category that belong to the user
-    const recipes = db.prepare('SELECT * FROM recipes WHERE category_id = ? AND user_id = ? ORDER BY id DESC')
-      .all(req.params.id, userId);
+    const recipes = db.prepare(`
+      SELECT r.*, c.name as category_name 
+      FROM recipes r
+      LEFT JOIN categories c ON r.category_id = c.id
+      WHERE r.category_id = ? AND r.user_id = ? 
+      ORDER BY r.id DESC
+    `).all(req.params.id, userId);
       
     res.json(recipes);
   } catch (err) {
@@ -417,8 +501,6 @@ app.post('/categories', (req, res) => {
     if (!name) {
       return res.status(400).json({ error: 'Category name is required' });
     }
-    
-    console.log('Creating category with data:', { name, user_id });
     
     // Check if category with this name already exists for this user
     const existingCategory = db.prepare('SELECT id FROM categories WHERE name = ? AND (user_id IS NULL OR user_id = ?)').get(name, user_id);
@@ -502,13 +584,25 @@ app.get('/dashboard', (req, res) => {
     // Get recipe counts
     const totalCount = db.prepare('SELECT COUNT(*) as count FROM recipes WHERE user_id = ?').get(userId).count;
     const favoriteCount = db.prepare('SELECT COUNT(*) as count FROM recipes WHERE user_id = ? AND is_favorite = 1').get(userId).count;
-    const categoryCount = db.prepare('SELECT COUNT(DISTINCT category_id) as count FROM recipes WHERE user_id = ?').get(userId).count;
+    const categoryCount = db.prepare('SELECT COUNT(DISTINCT category_id) as count FROM recipes WHERE user_id = ? AND category_id IS NOT NULL').get(userId).count;
     
     // Get recent recipes (limit to 3)
-    const recentRecipes = db.prepare('SELECT id, title, category_id, is_favorite FROM recipes WHERE user_id = ? ORDER BY id DESC LIMIT 3').all(userId);
+    const recentRecipes = db.prepare(`
+      SELECT r.id, r.title, r.category_id, r.is_favorite, r.image_url, c.name as category_name 
+      FROM recipes r
+      LEFT JOIN categories c ON r.category_id = c.id
+      WHERE r.user_id = ? 
+      ORDER BY r.id DESC LIMIT 3
+    `).all(userId);
     
     // Get favorite recipes (limit to 3)
-    const favoriteRecipes = db.prepare('SELECT id, title, category_id, is_favorite FROM recipes WHERE user_id = ? AND is_favorite = 1 ORDER BY id DESC LIMIT 3').all(userId);
+    const favoriteRecipes = db.prepare(`
+      SELECT r.id, r.title, r.category_id, r.is_favorite, r.image_url, c.name as category_name 
+      FROM recipes r
+      LEFT JOIN categories c ON r.category_id = c.id
+      WHERE r.user_id = ? AND r.is_favorite = 1 
+      ORDER BY r.id DESC LIMIT 3
+    `).all(userId);
     
     res.json({
       stats: {
