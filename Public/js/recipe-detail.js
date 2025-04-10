@@ -15,9 +15,25 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Get recipe ID from URL
     const urlParams = new URLSearchParams(window.location.search);
-    const recipeId = urlParams.get('id');
     
-    if (!recipeId) {
+    // Check for both regular id and encoded r parameter
+    const regularId = urlParams.get('id');
+    const encodedId = urlParams.get('r');
+    
+    // Determine which ID to use
+    let recipeId;
+    
+    if (encodedId) {
+        // If we have an encoded ID, decode it
+        recipeId = decodeRecipeId(encodedId);
+        if (!recipeId) {
+            showError('Invalid recipe identifier');
+            return;
+        }
+    } else if (regularId) {
+        // Use the regular ID if no encoded ID is present
+        recipeId = regularId;
+    } else {
         showError('Recipe ID is missing');
         return;
     }
@@ -100,11 +116,14 @@ function displayRecipeDetails(recipe) {
         ? '<i class="fas fa-star"></i>'
         : '<i class="far fa-star"></i>';
     
-    // Build the HTML for the recipe details
+    // Build the HTML with a new structure for better layout
     container.innerHTML = `
         <div class="recipe-detail-header">
             <div class="recipe-detail-title-section">
                 <h1>${recipe.title}</h1>
+            </div>
+            
+            <div class="recipe-detail-meta">
                 ${categoryBadge}
                 <button id="favorite-toggle" class="favorite-btn" data-is-favorite="${recipe.is_favorite ? 'true' : 'false'}">
                     ${favoriteIcon} ${recipe.is_favorite ? 'Favorite' : 'Add to favorites'}
@@ -334,34 +353,3 @@ function showError(message) {
         </div>
     `;
 }
-
-// Check authentication when the page loads
-document.addEventListener('DOMContentLoaded', () => {
-    // Get user from localStorage
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!user || !user.id) {
-        // User not logged in, redirect to login
-        window.location.href = '/login.html';
-        return;
-    }
-    
-    // Get recipe ID from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const encodedId = urlParams.get('r');
-    
-    // Decode the ID
-    const recipeId = decodeRecipeId(encodedId);
-    
-    if (!recipeId) {
-        showError('Invalid recipe identifier');
-        return;
-    }
-    
-    // Load recipe details
-    loadRecipeDetails(recipeId, user.id);
-    
-    // Set up event listeners
-    setupEventListeners(recipeId, user.id);
-});
-
-// Rest of the file remains the same
