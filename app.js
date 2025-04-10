@@ -10,6 +10,14 @@ const port = 3000;
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Root route handling
+app.get('/', (req, res) => {
+  console.log('Root route hit, serving index.html directly');
+  res.sendFile(path.join(__dirname, 'Public', 'index.html'));
+});
+
+// Set up static file serving after the root route
 app.use(express.static('Public'));
 
 // Set up database
@@ -55,6 +63,20 @@ function initializeDatabase() {
 
 // Run database initialization
 initializeDatabase();
+
+// Create test user if no users exist
+try {
+  const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get();
+  if (!userCount || userCount.count === 0) {
+    // Create a test user with password "password123"
+    const hashedPassword = bcrypt.hashSync('password123', 10);
+    db.prepare('INSERT INTO users (username, email, password) VALUES (?, ?, ?)')
+      .run('testuser', 'test@example.com', hashedPassword);
+    console.log('Created test user: testuser / password123');
+  }
+} catch (err) {
+  console.error('Error checking for or creating test user:', err);
+}
 
 // Check if recipes table has necessary columns, add if needed
 try {
@@ -320,10 +342,6 @@ app.post('/recipes', async (req, res) => {
   try {
     const { title, ingredients, instructions, category_id, user_id, image_url, is_favorite } = req.body;
     
-    // Debug logging
-    console.log('Creating recipe with data:', req.body);
-    console.log('is_favorite value received:', is_favorite);
-    
     // Validate required fields
     if (!title || !ingredients || !instructions || !user_id) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -570,6 +588,30 @@ app.delete('/categories/:id', (req, res) => {
   }
 });
 
+// ======================== DEBUG ROUTE ========================
+
+// Debug route to check database and user status
+app.get('/api/debug', (req, res) => {
+  try {
+    // Check database connection
+    const dbTest = db.prepare('SELECT 1 as test').get();
+    
+    // Check users table
+    const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get();
+    
+    // Send debug information
+    res.json({
+      status: 'OK',
+      database: {
+        connected: !!dbTest,
+        userCount: userCount ? userCount.count : 0
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ======================== DASHBOARD ROUTE ========================
 
 // Get dashboard data for user
@@ -617,13 +659,6 @@ app.get('/dashboard', (req, res) => {
     console.error('Get dashboard error:', err);
     res.status(500).json({ error: 'Failed to fetch dashboard data' });
   }
-});
-
-// ======================== ROOT ROUTE ========================
-
-// Root route
-app.get('/', (req, res) => {
-  res.send('Welcome to Recipe Manager API. Available endpoints: /recipes, /categories, etc.');
 });
 
 // Start server

@@ -5,6 +5,8 @@
 
 // Initialize authentication features when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('Auth.js loaded successfully');
+    
     // Create and add the logout modal to the DOM
     createLogoutModal();
     
@@ -12,17 +14,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const isAuthPage = window.location.pathname.includes('login.html') || 
                        window.location.pathname.includes('register.html');
     
-    // Handle page protection
+    // Get the current user from localStorage
+    const user = JSON.parse(localStorage.getItem('user'));
+    console.log('Current user:', user);
+    
+    // Direct redirect to login if accessing index page while not logged in
+    if ((window.location.pathname === '/' || window.location.pathname.endsWith('index.html')) && (!user || !user.id)) {
+        console.log('Index page accessed without login, redirecting to login page');
+        window.location.href = '/login.html';
+        return;
+    }
+    
+    // Handle page protection for other pages
     if (!isAuthPage) {
-        // Check if user is logged in
-        const user = JSON.parse(localStorage.getItem('user'));
         const publicPages = ['/', '/index.html', '/login.html', '/register.html'];
         const currentPath = window.location.pathname;
         
         // If on a protected page and not logged in, redirect to login
         if (!publicPages.includes(currentPath) && (!user || !user.id)) {
+            console.log('Protected page accessed without login, redirecting');
             window.location.href = '/login.html';
             return;
+        }
+    }
+    
+    // If on index page and logged in, ensure dashboard is shown and username is displayed
+    if ((window.location.pathname === '/' || window.location.pathname.endsWith('index.html')) && user && user.id) {
+        console.log('User logged in on index page, ensuring dashboard is visible');
+        const dashboardView = document.getElementById('dashboard-view');
+        if (dashboardView) {
+            dashboardView.style.display = 'block';
+            // Set username in the welcome message
+            const usernameDisplay = document.getElementById('username-display');
+            if (usernameDisplay) {
+                usernameDisplay.textContent = user.username;
+            }
         }
     }
     
@@ -64,7 +90,10 @@ function setupEventListeners() {
     // Login form
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
+        console.log('Login form found, adding event listener');
         loginForm.addEventListener('submit', handleLogin);
+    } else {
+        console.log('Login form not found on this page');
     }
     
     // Registration form
@@ -137,14 +166,14 @@ function hideLogoutConfirmation() {
  * Perform the actual logout action
  */
 function performLogout() {
+    // Clear user data from local storage
     localStorage.removeItem('user');
     
-    // Redirect to home or reload if already home
-    if (window.location.pathname === '/' || window.location.pathname.endsWith('index.html')) {
-        window.location.reload();
-    } else {
-        window.location.href = '/';
-    }
+    // Hide the logout confirmation modal
+    hideLogoutConfirmation();
+    
+    // Redirect to login page
+    window.location.href = '/login.html';
 }
 
 /**
@@ -153,6 +182,12 @@ function performLogout() {
  */
 async function handleLogin(e) {
     e.preventDefault();
+    console.log('Login form submitted');
+    
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    
+    console.log('Attempting login with username:', username);
     
     const errorElement = document.getElementById('login-error');
     const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -169,9 +204,6 @@ async function handleLogin(e) {
     }
     
     try {
-        const username = e.target.username.value;
-        const password = e.target.password.value;
-        
         const response = await fetch('/login', {
             method: 'POST',
             headers: {
@@ -180,19 +212,22 @@ async function handleLogin(e) {
             body: JSON.stringify({ username, password })
         });
         
+        console.log('Login response status:', response.status);
+        const data = await response.json();
+        console.log('Login response data:', data);
+        
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Invalid credentials');
+            throw new Error(data.error || 'Invalid credentials');
         }
         
-        const userData = await response.json();
-        
         // Store user data in localStorage
-        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem('user', JSON.stringify(data));
         
-        // Redirect to dashboard
-        window.location.href = '/';
+        // Redirect to index.html explicitly (not just root path)
+        window.location.href = '/index.html';
     } catch (err) {
+        console.error('Login error:', err);
+        
         // Show error
         if (errorElement) {
             errorElement.textContent = err.message;
@@ -213,6 +248,7 @@ async function handleLogin(e) {
  */
 async function handleRegister(e) {
     e.preventDefault();
+    console.log('Register form submitted');
     
     const errorElement = document.getElementById('register-error');
     const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -226,6 +262,8 @@ async function handleRegister(e) {
     // Clear previous errors
     if (errorElement) {
         errorElement.style.display = 'none';
+        errorElement.classList.remove('success-message');
+        errorElement.classList.add('error-message');
     }
     
     try {
@@ -239,6 +277,8 @@ async function handleRegister(e) {
             throw new Error('Passwords do not match');
         }
         
+        console.log('Submitting registration for:', username);
+        
         const response = await fetch('/register', {
             method: 'POST',
             headers: {
@@ -247,9 +287,12 @@ async function handleRegister(e) {
             body: JSON.stringify({ username, email, password })
         });
         
+        console.log('Registration response status:', response.status);
+        const data = await response.json();
+        console.log('Registration response data:', data);
+        
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Registration failed');
+            throw new Error(data.error || 'Registration failed');
         }
         
         // Show success message
@@ -265,6 +308,8 @@ async function handleRegister(e) {
             window.location.href = '/login.html';
         }, 1500);
     } catch (err) {
+        console.error('Registration error:', err);
+        
         // Show error
         if (errorElement) {
             errorElement.textContent = err.message;
@@ -277,18 +322,4 @@ async function handleRegister(e) {
             submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
         }
     }
-}
-
-/**
- * Perform the actual logout action
- */
-function performLogout() {
-    // Clear user data from local storage
-    localStorage.removeItem('user');
-    
-    // Hide the logout confirmation modal
-    hideLogoutConfirmation();
-    
-    // Redirect to login page instead of home page
-    window.location.href = '/login.html';
 }
