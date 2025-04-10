@@ -319,15 +319,23 @@ app.get('/recipes', (req, res) => {
 // Get single recipe by ID (with category name)
 app.get('/recipes/:id', (req, res) => {
   try {
+    const recipeId = req.params.id;
+    const userId = req.query.user_id;
+    
+    // Require user_id parameter for authorization
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+    
     const recipe = db.prepare(`
       SELECT r.*, c.name as category_name 
       FROM recipes r
       LEFT JOIN categories c ON r.category_id = c.id
-      WHERE r.id = ?
-    `).get(req.params.id);
+      WHERE r.id = ? AND r.user_id = ?
+    `).get(recipeId, userId);
     
     if (!recipe) {
-      return res.status(404).json({ error: 'Recipe not found' });
+      return res.status(404).json({ error: 'Recipe not found or you do not have permission to view it' });
     }
     
     res.json(recipe);
