@@ -1,63 +1,128 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const loginForm = document.getElementById('login-form');
-    const errorMessage = document.getElementById('error-message');
+/**
+ * RecipeManager - Innloggings-Controller
+ * -------------------------------------
+ * Denne filen håndterer brukerautentisering og innloggingsprosessen.
+ * 
+ * Hovedfunksjoner:
+ * - Validering av innloggingsskjema
+ * - Innsending av brukerlegitimasjon til server
+ * - Håndtering av innloggingssvar og feil
+ * - Lagring av brukerdata ved vellykket innlogging
+ * - Omdirigering til riktige sider basert på innloggingsstatus
+ */
 
-    // Only add event listener if form exists on page
-    if (loginForm) {
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            // Clear previous error messages
-            if (errorMessage) {
-                errorMessage.textContent = '';
-                errorMessage.style.display = 'none';
-            }
-            
-            const formData = {
-                username: document.getElementById('username').value,
-                password: document.getElementById('password').value
-            };
-            
-            try {
-                console.log('Sending login request...');
-                const response = await fetch('/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(formData)
-                });
-                
-                console.log('Response status:', response.status);
-                const data = await response.json();
-                console.log('Response data:', data);
-                
-                if (response.ok) {
-                    // Login successful, store user data
-                    localStorage.setItem('user', JSON.stringify(data));
-                    
-                    // Redirect to recipes page
-                    console.log('Login successful, redirecting...');
-                    window.location.href = '/recipes.html';
-                } else {
-                    // Login failed, show error message
-                    console.error('Login failed:', data.error);
-                    if (errorMessage) {
-                        errorMessage.textContent = data.error || 'Invalid username or password';
-                        errorMessage.style.display = 'block';
-                    } else {
-                        alert(data.error || 'Invalid username or password');
-                    }
-                }
-            } catch (err) {
-                console.error('Login error:', err);
-                if (errorMessage) {
-                    errorMessage.textContent = 'An error occurred during login. Please try again.';
-                    errorMessage.style.display = 'block';
-                } else {
-                    alert('An error occurred during login. Please try again.');
-                }
-            }
-        });
-    }
+// Vent til DOM er fullstendig lastet
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialiser innloggingsskjemafunksjonalitet
+    initializeLoginForm();
+    
+    // Sjekk om brukeren allerede er innlogget
+    checkLoginStatus();
 });
+
+/**
+ * Sjekker om brukeren allerede er innlogget
+ * Omdirigerer til dashbord hvis en gyldig brukerøkt finnes
+ */
+function checkLoginStatus() {
+    // Hent brukerdata fra lokal lagring
+    const user = JSON.parse(localStorage.getItem('user'));
+    
+    // Hvis vi er på innloggingssiden og brukeren allerede er innlogget,
+    // omdiriger til dashbord
+    if (user && user.id && window.location.pathname.includes('login.html')) {
+        window.location.href = '/';
+    }
+}
+
+/**
+ * Setter opp hendelseslyttere og validering for innloggingsskjemaet
+ */
+function initializeLoginForm() {
+    // Hent skjemaelementet
+    const loginForm = document.getElementById('login-form');
+    
+    // Fortsett bare hvis skjemaet finnes på siden
+    if (!loginForm) return;
+    
+    // Legg til innsendingshåndtering for skjemaet
+    loginForm.addEventListener('submit', async (e) => {
+        // Forhindre standard skjemainnsending
+        e.preventDefault();
+        
+        // Hent skjemafeltene
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const errorDisplay = document.getElementById('login-error');
+        
+        // Grunnleggende validering
+        if (!usernameInput.value.trim() || !passwordInput.value.trim()) {
+            if (errorDisplay) {
+                errorDisplay.textContent = 'Please enter both username and password';
+                errorDisplay.style.display = 'block';
+            }
+            return;
+        }
+        
+        // Forsøk innlogging med gitte legitimasjoner
+        await attemptLogin(usernameInput.value, passwordInput.value, errorDisplay);
+    });
+}
+
+/**
+ * Sender innloggingsforespørsel til serveren og håndterer resultatet
+ * 
+ * @param {string} username - Brukernavnet som er angitt
+ * @param {string} password - Passordet som er angitt
+ * @param {HTMLElement} errorDisplay - Element for visning av feilmeldinger
+ */
+async function attemptLogin(username, password, errorDisplay) {
+    try {
+        // Forbered "innlasting"-tilstand
+        const submitButton = document.querySelector('#login-form button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = 'Logging in...';
+        }
+        
+        // Send innloggingsforespørsel til serveren
+        const response = await fetch('/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, password })
+        });
+        
+        // Parse JSON-svaret
+        const data = await response.json();
+        
+        // Håndter innloggingsresultatet
+        if (response.ok) {
+            // Vellykket innlogging - lagre brukerdata og omdiriger
+            localStorage.setItem('user', JSON.stringify(data));
+            window.location.href = '/';
+        } else {
+            // Vis feilmelding fra serveren
+            if (errorDisplay) {
+                errorDisplay.textContent = data.error || 'Login failed. Please check your credentials.';
+                errorDisplay.style.display = 'block';
+            }
+        }
+    } catch (err) {
+        // Håndter nettverksfeil eller andre uventede problemer
+        console.error('Login error:', err);
+        
+        if (errorDisplay) {
+            errorDisplay.textContent = 'An error occurred during login. Please try again.';
+            errorDisplay.style.display = 'block';
+        }
+    } finally {
+        // Gjenopprett knappen til normal tilstand uansett resultat
+        const submitButton = document.querySelector('#login-form button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Login';
+        }
+    }
+}

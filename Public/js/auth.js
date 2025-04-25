@@ -1,50 +1,64 @@
 /**
- * Recipe Manager Authentication Module
- * Handles login, registration, authentication checks, and logout
+ * RecipeManager - Autentiseringsmodul
+ * ------------------------------------
+ * Denne filen håndterer all brukerautentisering i applikasjonen,
+ * inkludert innlogging, registrering, sesjonsvalidering og utlogging.
+ * 
+ * Hovedfunksjonalitet:
+ * - Kontrollerer tilgang til beskyttede sider basert på innloggingsstatus
+ * - Håndterer innloggings- og registreringsskjemaer
+ * - Lagrer brukerdata i lokal lagring for persistens mellom øktene
+ * - Håndterer utloggingsprosess med bekreftelsesdialog
+ * - Validerer brukerlegitimasjon mot serveren
  */
 
-// Initialize authentication features when DOM is ready
+// Initialiser autentiseringsfunksjoner når DOM er lastet
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Auth.js loaded successfully');
+    console.log('Auth.js ble lastet inn');
     
-    // Create and add the logout modal to the DOM
+    // Opprett og legg til utloggingsmodalvinduet i DOM-strukturen
+    // Dette sikrer at utloggingsbekreftelsen er tilgjengelig på alle sider
     createLogoutModal();
     
-    // Check if we're on the login or register page
+    // Sjekk om vi er på en innloggings- eller registreringsside
+    // Dette hjelper med å justere navigasjonslogikken basert på sidetype
     const isAuthPage = window.location.pathname.includes('login.html') || 
                        window.location.pathname.includes('register.html');
     
-    // Get the current user from localStorage
+    // Hent gjeldende brukerdata fra lokal lagring hvis tilgjengelig
     const user = JSON.parse(localStorage.getItem('user'));
-    console.log('Current user:', user);
+    console.log('Gjeldende bruker:', user);
     
-    // Direct redirect to login if accessing index page while not logged in
+    // Direkte omdirigering til innlogging hvis hjemmesiden besøkes uten innlogging
+    // Dette sikrer at bare innloggede brukere kan se dashbordet
     if ((window.location.pathname === '/' || window.location.pathname.endsWith('index.html')) && (!user || !user.id)) {
-        console.log('Index page accessed without login, redirecting to login page');
+        console.log('Hjemmeside ble åpnet uten innlogging, omdirigerer til innloggingssiden');
         window.location.href = '/login.html';
         return;
     }
     
-    // Handle page protection for other pages
+    // Håndter sidebeskyttelse for andre sider enn innlogging/registrering
     if (!isAuthPage) {
+        // Definer hvilke sider som er offentlig tilgjengelige uten innlogging
         const publicPages = ['/', '/index.html', '/login.html', '/register.html'];
         const currentPath = window.location.pathname;
         
-        // If on a protected page and not logged in, redirect to login
+        // Hvis brukeren prøver å åpne en beskyttet side uten å være innlogget, omdiriger til innlogging
         if (!publicPages.includes(currentPath) && (!user || !user.id)) {
-            console.log('Protected page accessed without login, redirecting');
+            console.log('Beskyttet side åpnet uten innlogging, omdirigerer');
             window.location.href = '/login.html';
             return;
         }
     }
     
-    // If on index page and logged in, ensure dashboard is shown and username is displayed
+    // Hvis på hjemmesiden og innlogget, sørg for at dashbordet vises med riktig brukernavn
     if ((window.location.pathname === '/' || window.location.pathname.endsWith('index.html')) && user && user.id) {
-        console.log('User logged in on index page, ensuring dashboard is visible');
+        console.log('Bruker innlogget på hjemmesiden, viser dashbord');
         const dashboardView = document.getElementById('dashboard-view');
         if (dashboardView) {
             dashboardView.style.display = 'block';
-            // Set username in the welcome message
+            
+            // Sett brukernavnet i velkomstmeldingen for personalisering
             const usernameDisplay = document.getElementById('username-display');
             if (usernameDisplay) {
                 usernameDisplay.textContent = user.username;
@@ -52,15 +66,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Set up event listeners for forms and buttons
+    // Sett opp nødvendige hendelseslyttere for skjemaer og knapper
     setupEventListeners();
 });
 
 /**
- * Creates the logout confirmation modal and adds it to the DOM
+ * Oppretter utloggingsbekreftelsesmodalvindu og legger det til i DOM
+ * 
+ * Dette modalvinduet gir en visuell bekreftelse før utlogging for å forhindre
+ * utilsiktet utlogging og tap av ulagret arbeid. Det inkluderer både
+ * "Avbryt" og "Logg ut"-knapper for å gi brukeren kontroll.
  */
 function createLogoutModal() {
+    // Sjekk om modalvinduet allerede eksisterer for å unngå duplisering
     if (!document.getElementById('logout-modal')) {
+        // Definer HTML-strukturen for modalvinduet med ikonografi og knapper
         const modalHtml = `
             <div id="logout-modal" class="modal">
                 <div class="modal-overlay"></div>
@@ -79,41 +99,47 @@ function createLogoutModal() {
             </div>
         `;
         
+        // Legg til modalvinduet i slutten av body-elementet
         document.body.insertAdjacentHTML('beforeend', modalHtml);
     }
 }
 
 /**
- * Set up event listeners for forms and buttons
+ * Setter opp hendelseslyttere for alle autentiseringsrelaterte elementer
+ * 
+ * Denne funksjonen kobler hendelseslyttere til skjemaer og knapper i brukergrensesnittet
+ * som er relatert til autentisering, inkludert innloggings- og registreringsskjemaer,
+ * utloggingsknapper og modalvinduinteraksjoner.
  */
 function setupEventListeners() {
-    // Login form
+    // Innloggingsskjema - koble til hendelseshåndtereren
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
-        console.log('Login form found, adding event listener');
+        console.log('Fant innloggingsskjema, legger til hendelseslytter');
         loginForm.addEventListener('submit', handleLogin);
     } else {
-        console.log('Login form not found on this page');
+        console.log('Innloggingsskjema ikke funnet på denne siden');
     }
     
-    // Registration form
+    // Registreringsskjema - koble til hendelseshåndtereren
     const registerForm = document.getElementById('register-form');
     if (registerForm) {
         registerForm.addEventListener('submit', handleRegister);
     }
     
-    // Logout buttons - both main nav and homepage
+    // Utloggingsknapper - både i hovednavigasjonen og på hjemmesiden
+    // Bruker querySelector for å fange opp alle matchende elementer
     const logoutButtons = document.querySelectorAll('#logout-btn, #logout-btn-home');
     logoutButtons.forEach(btn => {
         if (btn) {
             btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                showLogoutConfirmation();
+                e.preventDefault(); // Forhindre standardlenkeoppførsel
+                showLogoutConfirmation(); // Vis bekreftelsesmodalvinduet
             });
         }
     });
     
-    // Logout modal buttons
+    // Modalvindu-knapper for å avbryte og bekrefte utlogging
     const cancelLogoutBtn = document.getElementById('cancel-logout');
     if (cancelLogoutBtn) {
         cancelLogoutBtn.addEventListener('click', hideLogoutConfirmation);
@@ -124,13 +150,13 @@ function setupEventListeners() {
         confirmLogoutBtn.addEventListener('click', performLogout);
     }
     
-    // Modal overlay click to cancel
+    // Klikk på modaloverlaget for å avbryte (UX-forbedring)
     const modalOverlay = document.querySelector('.modal-overlay');
     if (modalOverlay) {
         modalOverlay.addEventListener('click', hideLogoutConfirmation);
     }
     
-    // ESC key to close modal
+    // ESC-tast for å lukke modalvinduet (tilgjengelighetsforsterkning)
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && document.body.classList.contains('modal-open')) {
             hideLogoutConfirmation();
@@ -139,71 +165,96 @@ function setupEventListeners() {
 }
 
 /**
- * Show the logout confirmation modal
+ * Viser utloggingsbekreftelsesmodalvinduet
+ * 
+ * Denne funksjonen aktiverer modalvinduet ved å legge til CSS-klasser
+ * som kontrollerer synlighet og animasjon av modalvinduet.
  */
 function showLogoutConfirmation() {
     const modal = document.getElementById('logout-modal');
     if (modal) {
+        // Legg til klasser som viser modalvinduet og låser bakgrunnen
         document.body.classList.add('modal-open');
         modal.classList.add('show');
     }
 }
 
 /**
- * Hide the logout confirmation modal
+ * Skjuler utloggingsbekreftelsesmodalvinduet
+ * 
+ * Denne funksjonen bruker en kombinasjon av CSS-klasser og en tidsforsinkelse
+ * for å skape en jevn utfading av modalvinduet før det skjules helt.
  */
 function hideLogoutConfirmation() {
     const modal = document.getElementById('logout-modal');
     if (modal) {
+        // Fjern 'show' klassen først for å starte utfadingsanimasjonen
         modal.classList.remove('show');
+        
+        // Vent på at animasjonen skal fullføres før vi frigjør bakgrunnen
+        // Dette sikrer en jevn visuell overgang
         setTimeout(() => {
             document.body.classList.remove('modal-open');
-        }, 300);
+        }, 300); // 300ms matcher vanligvis CSS-overgangsvarigheten
     }
 }
 
 /**
- * Perform the actual logout action
+ * Utfører den faktiske utloggingsoperasjonen
+ * 
+ * Denne funksjonen håndterer alle aspekter ved utlogging:
+ * - Fjerner brukerdata fra lokal lagring
+ * - Lukker modalvinduet
+ * - Omdirigerer til innloggingssiden
  */
 function performLogout() {
-    // Clear user data from local storage
+    // Fjern brukerdata fra lokal lagring for å avslutte økten
     localStorage.removeItem('user');
     
-    // Hide the logout confirmation modal
+    // Skjul bekreftelsesmodalvinduet når utloggingen er fullført
     hideLogoutConfirmation();
     
-    // Redirect to login page
+    // Omdiriger til innloggingssiden så brukeren kan logge inn på nytt
     window.location.href = '/login.html';
 }
 
 /**
- * Handle login form submission
- * @param {Event} e - Form submit event
+ * Håndterer innloggingsskjemainnsendinger
+ * 
+ * Denne funksjonen validerer og sender innloggingsforespørsler til serveren,
+ * oppdaterer brukergrensesnittet underveis for å vise status, og håndterer
+ * både vellykkede innlogginger og feil som kan oppstå.
+ * 
+ * @param {Event} e - Skjemainnsendingshendelsen
  */
 async function handleLogin(e) {
+    // Forhindre standard skjemainnsending
     e.preventDefault();
-    console.log('Login form submitted');
+    console.log('Innloggingsskjema innsendt');
     
+    // Hent innloggingsdata fra skjemafeltene
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     
-    console.log('Attempting login with username:', username);
+    console.log('Forsøker innlogging med brukernavn:', username);
     
+    // Referanser til UI-elementer for å oppdatere status
     const errorElement = document.getElementById('login-error');
     const submitBtn = e.target.querySelector('button[type="submit"]');
     
-    // Show loading state
+    // Oppdater knappestatus for å vise laster-tilstand
     if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
     }
     
-    // Clear previous errors
+    // Fjern eventuelle tidligere feilmeldinger
     if (errorElement) {
         errorElement.style.display = 'none';
     }
     
     try {
+        // Send innloggingsforespørsel til API-et
         const response = await fetch('/login', {
             method: 'POST',
             headers: {
@@ -212,29 +263,31 @@ async function handleLogin(e) {
             body: JSON.stringify({ username, password })
         });
         
-        console.log('Login response status:', response.status);
+        console.log('Innloggingsrespons status:', response.status);
         const data = await response.json();
-        console.log('Login response data:', data);
+        console.log('Innloggingsresponsdata:', data);
         
+        // Håndter mislykket innlogging
         if (!response.ok) {
-            throw new Error(data.error || 'Invalid credentials');
+            throw new Error(data.error || 'Ugyldig legitimasjon');
         }
         
-        // Store user data in localStorage
+        // Lagre brukerdata i lokal lagring for å opprettholde innloggingsstatusen
         localStorage.setItem('user', JSON.stringify(data));
         
-        // Redirect to index.html explicitly (not just root path)
+        // Omdiriger til dashbordet (eksplisitt angi index.html for konsistens)
         window.location.href = '/index.html';
     } catch (err) {
-        console.error('Login error:', err);
+        // Logg og vis feilmeldinger ved innloggingsproblemer
+        console.error('Innloggingsfeil:', err);
         
-        // Show error
+        // Vis feilmelding til brukeren
         if (errorElement) {
             errorElement.textContent = err.message;
             errorElement.style.display = 'block';
         }
         
-        // Reset button
+        // Tilbakestill knappen slik at brukeren kan prøve på nytt
         if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
@@ -243,23 +296,30 @@ async function handleLogin(e) {
 }
 
 /**
- * Handle registration form submission
- * @param {Event} e - Form submit event
+ * Håndterer registreringsskjemainnsendinger
+ * 
+ * Denne funksjonen validerer brukerens inndata, sender registreringsforespørsler
+ * til serveren, og håndterer både vellykkede registreringer og feil som kan oppstå.
+ * Den inkluderer validering av passordmatch og andre grunnleggende sjekker.
+ * 
+ * @param {Event} e - Skjemainnsendingshendelsen
  */
 async function handleRegister(e) {
+    // Forhindre standard skjemainnsending
     e.preventDefault();
-    console.log('Register form submitted');
+    console.log('Registreringsskjema sendt inn');
     
+    // Referanser til UI-elementer for å oppdatere status
     const errorElement = document.getElementById('register-error');
     const submitBtn = e.target.querySelector('button[type="submit"]');
     
-    // Show loading state
+    // Oppdater knappestatus for å vise laster-tilstand
     if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account...';
     }
     
-    // Clear previous errors
+    // Nullstill tidligere feilmeldinger og formater elementet for riktig stil
     if (errorElement) {
         errorElement.style.display = 'none';
         errorElement.classList.remove('success-message');
@@ -267,18 +327,21 @@ async function handleRegister(e) {
     }
     
     try {
+        // Hent brukerinndataene fra skjemafeltene
         const username = e.target.username.value;
         const email = e.target.email.value;
         const password = e.target.password.value;
         const confirmPassword = e.target.confirmPassword.value;
         
-        // Validate passwords match
+        // Valider at passordene matcher før innsending til serveren
+        // Dette er en viktig klientsideverifisering for å forbedre brukeropplevelsen
         if (password !== confirmPassword) {
             throw new Error('Passwords do not match');
         }
         
-        console.log('Submitting registration for:', username);
+        console.log('Sender registrering for:', username);
         
+        // Send registreringsforespørsel til API-et
         const response = await fetch('/register', {
             method: 'POST',
             headers: {
@@ -287,15 +350,16 @@ async function handleRegister(e) {
             body: JSON.stringify({ username, email, password })
         });
         
-        console.log('Registration response status:', response.status);
+        console.log('Registreringsrespons status:', response.status);
         const data = await response.json();
-        console.log('Registration response data:', data);
+        console.log('Registreringsrespons data:', data);
         
+        // Håndter mislykket registrering
         if (!response.ok) {
             throw new Error(data.error || 'Registration failed');
         }
         
-        // Show success message
+        // Vis suksessmelding til brukeren
         if (errorElement) {
             errorElement.textContent = 'Account created successfully! Redirecting to login...';
             errorElement.style.display = 'block';
@@ -303,20 +367,22 @@ async function handleRegister(e) {
             errorElement.classList.add('success-message');
         }
         
-        // Redirect to login page after a short delay
+        // Omdiriger til innloggingssiden etter en kort forsinkelse
+        // Dette gir brukeren tid til å lese suksessmeldingen
         setTimeout(() => {
             window.location.href = '/login.html';
         }, 1500);
     } catch (err) {
-        console.error('Registration error:', err);
+        // Logg og vis feilmeldinger ved registreringsproblemer
+        console.error('Registreringsfeil:', err);
         
-        // Show error
+        // Vis feilmelding til brukeren
         if (errorElement) {
             errorElement.textContent = err.message;
             errorElement.style.display = 'block';
         }
         
-        // Reset button
+        // Tilbakestill knappen slik at brukeren kan prøve på nytt
         if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';

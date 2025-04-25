@@ -1,11 +1,18 @@
 /**
- * Recipe Manager - Recipes Page
- * Handles displaying, filtering, and managing recipes
+ * RecipeManager - Oppskriftsside
+ * ------------------------------
+ * Denne filen håndterer funksjonaliteten for oppskriftsoversikten, inkludert:
+ * - Visning av alle brukerens oppskrifter i et rutenettformat
+ * - Filtrering av oppskrifter etter kategori
+ * - Filtrering av favorittmerkte oppskrifter
+ * - Håndtering av favorittmarkering
+ * - Sletting av oppskrifter
+ * - Navigasjon til detaljvisning og redigeringssider
  */
 
-// Load recipes and categories when page loads
+// Last inn oppskrifter og kategorier når siden lastes
 document.addEventListener('DOMContentLoaded', async () => {
-    // Check authentication
+    // Sjekk autentisering - sikrer at bare innloggede brukere får tilgang
     const user = JSON.parse(localStorage.getItem('user'));
     if (!user || !user.id) {
         window.location.href = '/login.html';
@@ -13,39 +20,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     try {
-        // Check if we need to filter for favorites from URL
+        // Sjekk om vi skal filtrere favoritter basert på URL-parameter
         const urlParams = new URLSearchParams(window.location.search);
         const showFavorites = urlParams.get('favorites') === '1';
         
-        // Set up favorites filter button if it exists
+        // Sett opp favorittfilterknapp hvis den eksisterer
         const favFilterBtn = document.getElementById('favorites-filter');
         if (favFilterBtn) {
             if (showFavorites) {
                 favFilterBtn.classList.add('active');
             }
             
+            // Legg til klikkhåndterer for favorittfiltrering
             favFilterBtn.addEventListener('click', () => {
                 const isActive = favFilterBtn.classList.contains('active');
                 
                 if (isActive) {
-                    // Remove filter
+                    // Fjern filter
                     favFilterBtn.classList.remove('active');
                     loadRecipes(document.getElementById('category-select').value);
                 } else {
-                    // Apply filter
+                    // Aktiver filter
                     favFilterBtn.classList.add('active');
                     loadRecipes(document.getElementById('category-select').value, true);
                 }
             });
         }
         
-        // Load categories for filter dropdown
+        // Last inn kategorier til filterdropdown
         await loadCategories();
         
-        // Load recipes with appropriate filters
+        // Last inn oppskrifter med passende filtre
         await loadRecipes(null, showFavorites);
         
-        // Set up category filter functionality
+        // Sett opp kategorifiltrering
         const categorySelect = document.getElementById('category-select');
         if (categorySelect) {
             categorySelect.addEventListener('change', async (e) => {
@@ -55,35 +63,38 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
     } catch (err) {
-        console.error('Error initializing page:', err);
+        console.error('Feil ved initialisering av siden:', err);
     }
 });
 
-// Load categories into dropdown
+/**
+ * Laster inn kategorier i nedtrekksmenyen
+ * Kategoriene deles inn i standardkategorier og brukerdefinerte kategorier
+ */
 async function loadCategories() {
     try {
         const user = JSON.parse(localStorage.getItem('user'));
         const response = await fetch(`/categories?user_id=${user.id}`);
-        if (!response.ok) throw new Error('Failed to fetch categories');
+        if (!response.ok) throw new Error('Kunne ikke hente kategorier');
         
         const categories = await response.json();
         const select = document.getElementById('category-select');
         
-        if (!select) return; // Skip if element doesn't exist
+        if (!select) return; // Hopp over hvis elementet ikke eksisterer
         
-        // Clear existing options except the first one
+        // Tøm eksisterende alternativer unntatt det første (som er "Alle kategorier")
         while (select.options.length > 1) {
             select.remove(1);
         }
         
-        // Create category groups
+        // Opprett kategorigupper
         const defaultGroup = document.createElement('optgroup');
-        defaultGroup.label = 'Default Categories';
+        defaultGroup.label = 'Standard Categories';
         
         const userGroup = document.createElement('optgroup');
         userGroup.label = 'My Categories';
         
-        // Sort categories into appropriate groups
+        // Sorter kategorier i passende grupper
         categories.forEach(category => {
             const option = document.createElement('option');
             option.value = category.id;
@@ -96,7 +107,7 @@ async function loadCategories() {
             }
         });
         
-        // Add groups to select if they have options
+        // Legg til gruppene i nedtrekkslisten hvis de har alternativer
         if (defaultGroup.children.length > 0) {
             select.appendChild(defaultGroup);
         }
@@ -105,17 +116,21 @@ async function loadCategories() {
             select.appendChild(userGroup);
         }
     } catch (err) {
-        console.error('Error loading categories:', err);
+        console.error('Feil ved lasting av kategorier:', err);
     }
 }
 
-// Load recipes, optionally filtered by category and/or favorites
+/**
+ * Laster inn oppskrifter, valgfritt filtrert etter kategori og/eller favoritter
+ * @param {number|string|null} categoryId - ID-en til kategorien som skal filtreres på, eller null for alle
+ * @param {boolean} favoritesOnly - Hvis true, vis bare favorittoppskrifter
+ */
 async function loadRecipes(categoryId = null, favoritesOnly = false) {
-    // Get user from localStorage
+    // Hent brukerdata fra lokal lagring
     const user = JSON.parse(localStorage.getItem('user'));
     
     if (!user || !user.id) {
-        console.error('User not logged in');
+        console.error('Bruker ikke innlogget');
         window.location.href = '/login.html';
         return;
     }
@@ -123,10 +138,11 @@ async function loadRecipes(categoryId = null, favoritesOnly = false) {
     const recipesContainer = document.getElementById('recipes-container');
     if (!recipesContainer) return;
     
+    // Vis lastindikator
     recipesContainer.innerHTML = '<div class="loading">Loading recipes...</div>';
     
     try {
-        // Determine which URL to use based on filters
+        // Bestem hvilken URL som skal brukes basert på filtrering
         let url;
         if (categoryId) {
             url = `/categories/${categoryId}/recipes?user_id=${user.id}`;
@@ -134,24 +150,24 @@ async function loadRecipes(categoryId = null, favoritesOnly = false) {
             url = `/recipes?user_id=${user.id}`;
         }
         
-        // Add favorites filter if needed
+        // Legg til favorittfilter hvis aktivert
         if (favoritesOnly) {
             url += '&favorites=1';
         }
         
-        console.log('Fetching recipes from:', url);
+        console.log('Henter oppskrifter fra:', url);
         
         const response = await fetch(url);
         
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || `Failed to fetch recipes: ${response.status}`);
+            throw new Error(errorData.error || `Kunne ikke hente oppskrifter: ${response.status}`);
         }
         
         const recipes = await response.json();
-        console.log('Recipes loaded:', recipes);
+        console.log('Oppskrifter lastet:', recipes);
         
-        // Update recipe count
+        // Oppdater oppskriftsantall
         const countDisplay = document.getElementById('recipe-count-display');
         if (countDisplay) {
             countDisplay.textContent = recipes.length;
@@ -164,23 +180,26 @@ async function loadRecipes(categoryId = null, favoritesOnly = false) {
             return;
         }
         
-        // Create recipe cards with images
+        // Opprett oppskriftskort med bilder
         recipes.forEach(recipe => {
             const card = createRecipeCard(recipe);
             recipesContainer.appendChild(card);
         });
         
-        // Add event listeners for interactive buttons
+        // Legg til hendelsesfunksjon for interaktive knapper
         addEventListeners();
         
     } catch (err) {
-        console.error('Error loading recipes:', err);
+        console.error('Feil ved lasting av oppskrifter:', err);
         recipesContainer.innerHTML = `<p class="error-message">Error loading recipes: ${err.message}</p>`;
     }
 }
 
-// Create a recipe card with image support
-// Update this function in recipes.js
+/**
+ * Oppretter et oppskriftskort med bildestøtte
+ * @param {Object} recipe - Oppskriftsobjektet som skal vises
+ * @returns {HTMLElement} Det opprettede oppskriftskortelementet
+ */
 function createRecipeCard(recipe) {
     const card = document.createElement('div');
     card.className = 'recipe-card';
@@ -190,13 +209,15 @@ function createRecipeCard(recipe) {
         card.classList.add('is-favorite');
     }
     
-    // Create the image part
+    // Opprett bildedelen
     const imageSection = recipe.image_url 
         ? `<div class="recipe-card-image" style="background-image: url('${recipe.image_url}')"></div>`
         : `<div class="recipe-card-image no-image">
              <i class="fas fa-utensils"></i>
            </div>`;
     
+    // Her bør vi bruke encodeRecipeId(recipe.id) i href for å skjule ID-ene i URL-en,
+    // men vi beholder ren tekst for kompatibilitet med eksisterende kode
     card.innerHTML = `
         ${imageSection}
         <div class="recipe-card-content">
@@ -222,20 +243,25 @@ function createRecipeCard(recipe) {
     return card;
 }
 
-// Add event listeners to recipe buttons
+/**
+ * Legger til hendelsesfunksjoner til oppskriftsknapper
+ */
 function addEventListeners() {
-    // Add event listeners for delete buttons
+    // Legg til hendelsesfunksjoner for sletteknapper
     document.querySelectorAll('.delete-recipe').forEach(button => {
         button.addEventListener('click', deleteRecipe);
     });
     
-    // Add event listeners for favorite buttons
+    // Legg til hendelsesfunksjoner for favorittknapper
     document.querySelectorAll('.favorite-btn').forEach(button => {
         button.addEventListener('click', toggleFavorite);
     });
 }
 
-// Handle recipe deletion
+/**
+ * Håndterer sletting av oppskrifter
+ * @param {Event} e - Hendelseobjektet fra klikket
+ */
 async function deleteRecipe(e) {
     const recipeId = e.target.getAttribute('data-id');
     const user = JSON.parse(localStorage.getItem('user'));
@@ -247,34 +273,37 @@ async function deleteRecipe(e) {
             });
             
             if (response.ok) {
-                // Visual feedback before reload
+                // Visuell tilbakemelding før omladning
                 const card = e.target.closest('.recipe-card');
                 if (card) {
                     card.classList.add('deleting');
                     setTimeout(() => {
-                        // Reload the current recipe list after deletion
+                        // Last inn gjeldende oppskriftsliste på nytt etter sletting
                         const categoryId = document.getElementById('category-select')?.value || null;
                         const showFavoritesOnly = document.getElementById('favorites-filter')?.classList.contains('active') || false;
                         loadRecipes(categoryId, showFavoritesOnly);
                     }, 300);
                 } else {
-                    // Fallback if card element not found
+                    // Fallback hvis kort-elementet ikke finnes
                     const categoryId = document.getElementById('category-select')?.value || null;
                     const showFavoritesOnly = document.getElementById('favorites-filter')?.classList.contains('active') || false;
                     loadRecipes(categoryId, showFavoritesOnly);
                 }
             } else {
                 const error = await response.json();
-                alert(error.message || 'Failed to delete recipe');
+                alert(error.message || 'Could not delete recipe');
             }
         } catch (err) {
-            console.error('Error deleting recipe:', err);
-            alert('An error occurred while trying to delete the recipe');
+            console.error('Feil ved sletting av oppskrift:', err);
+            alert('An error occurred while deleting the recipe');
         }
     }
 }
 
-// Toggle favorite status
+/**
+ * Veksler favoritt-status for en oppskrift
+ * @param {Event} e - Hendelseobjektet fra klikket
+ */
 async function toggleFavorite(e) {
     e.preventDefault();
     e.stopPropagation();
@@ -294,29 +323,29 @@ async function toggleFavorite(e) {
         });
         
         if (response.ok) {
-            // Toggle active class
+            // Veksle aktiv-klasse
             btn.classList.toggle('active');
             
-            // Add animation class
+            // Legg til animasjonsklasse
             btn.classList.add('just-favorited');
             setTimeout(() => {
                 btn.classList.remove('just-favorited');
             }, 500);
             
-            // Toggle icon
+            // Veksle ikon
             btn.innerHTML = !isFavorite ? 
                 '<i class="fas fa-star"></i>' : 
                 '<i class="far fa-star"></i>';
                 
-            // Toggle parent card class
+            // Veksle kortklasse
             const card = btn.closest('.recipe-card');
             if (card) {
                 card.classList.toggle('is-favorite');
             }
             
-            // If we're in favorites-only view and we're unfavoriting, we might need to remove the card
+            // Hvis vi er i kun-favoritter-visning og vi fjerner favorittmarkering, må vi kanskje fjerne kortet
             if (isFavorite && document.getElementById('favorites-filter')?.classList.contains('active')) {
-                // Reload to remove the card from view
+                // Last inn på nytt for å fjerne kortet fra visningen
                 setTimeout(() => {
                     const categoryId = document.getElementById('category-select')?.value || null;
                     loadRecipes(categoryId, true);
@@ -324,9 +353,9 @@ async function toggleFavorite(e) {
             }
         } else {
             const error = await response.json();
-            console.error('Failed to update favorite status:', error);
+            console.error('Kunne ikke oppdatere favoritt-status:', error);
         }
     } catch (err) {
-        console.error('Error toggling favorite:', err);
+        console.error('Feil ved veksling av favoritt-status:', err);
     }
 }

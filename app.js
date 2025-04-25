@@ -1,31 +1,65 @@
+/**
+ * RecipeManager - Hovedapplikasjonsfil
+ * --------------------------------------------------
+ * Dette er hovedserverfilen for RecipeManager-applikasjonen, en fullstendig
+ * oppskriftshåndteringsplattform som gjør det mulig for brukere å lagre,
+ * kategorisere og administrere matoppskrifter.
+ * 
+ * Applikasjonen er bygget med Node.js og Express, og bruker SQLite for
+ * datalagring via better-sqlite3-biblioteket.
+ * 
+ * Hovedfunksjonalitet:
+ * - Brukeradministrasjon: registrering, innlogging og kontosletting
+ * - Oppskriftsadministrasjon: opprettelse, lagring, redigering og sletting av oppskrifter
+ * - Kategorihåndtering: standard og brukerdefinerte kategorier
+ * - Bildeopplasting: lagring av bilder for oppskrifter
+ * - Favorittmerking: mulighet for å markere oppskrifter som favoritter
+ * - REST API: endepunkter for å interagere med klientapplikasjonen
+ * 
+ * Sikkerhetsfunksjoner:
+ * - Passordkryptering med bcrypt
+ * - Brukerautentisering for alle beskyttede endepunkter
+ * - Validering av eierskap for alle brukeravhengige ressurser
+ * 
+ * Databasestruktur:
+ * - users: Brukerinformasjon og legitimasjon
+ * - recipes: Oppskrifter med titler, ingredienser og instruksjoner
+ * - categories: Standard og brukerdefinerte kategorier for organisering
+ */
+
 const express = require('express');
 const Database = require('better-sqlite3');
 const bcrypt = require('bcrypt');
-const multer = require('multer');
+const multer = require('multer'); // For bildeopplasting, brukt KI til multer fuksjonalitet
 const path = require('path');
 const fs = require('fs');
 const app = express();
 const port = 3000;
 
-// Middleware
+// Middleware for håndtering av forespørsler
+// Konfigurerer Express for å tolke JSON og form data
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Root route handling
+// Rotrutebehandling - håndterer forespørsler til hovedsiden
+// Dette sender index.html direkte når brukeren besøker rotkatalogen
 app.get('/', (req, res) => {
-  console.log('Root route hit, serving index.html directly');
+  console.log('Rotruteforespørsel mottatt, sender index.html direkte');
   res.sendFile(path.join(__dirname, 'Public', 'index.html'));
 });
 
-// Set up static file serving after the root route
+// Konfigurerer statisk filbetjening etter rotruteoppsettet
+// Dette gjør at alle filer i Public-mappen blir tilgjengelige direkte
 app.use(express.static('Public'));
 
-// Set up database
+// Setter opp databasetilkobling med SQLite
 const db = new Database('./Database/RecipeManager.db');
 
-// Initialize database tables if they don't exist
+// Initialiserer databasetabeller hvis de ikke allerede eksisterer
+// Dette kalles ved oppstart for å sikre at databasestrukturen er på plass
 function initializeDatabase() {
-  // Create users table if it doesn't exist
+  // Oppretter users-tabell hvis den ikke eksisterer
+  // Inneholder brukerinformasjon med krypterte passord
   db.prepare(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,7 +69,8 @@ function initializeDatabase() {
     )
   `).run();
 
-  // Create categories table if it doesn't exist
+  // Oppretter categories-tabell hvis den ikke eksisterer
+  // Inneholder både standardkategorier (null user_id) og brukerdefinerte kategorier
   db.prepare(`
     CREATE TABLE IF NOT EXISTS categories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,7 +79,8 @@ function initializeDatabase() {
     )
   `).run();
 
-  // Create recipes table if it doesn't exist
+  // Oppretter recipes-tabell hvis den ikke eksisterer
+  // Hovedtabellen for oppskrifter med relasjoner til både brukere og kategorier
   db.prepare(`
     CREATE TABLE IF NOT EXISTS recipes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,45 +97,49 @@ function initializeDatabase() {
   `).run();
 }
 
-// Run database initialization
+// Kjører databaseinitialisering ved oppstart
 initializeDatabase();
 
-// Create test user if no users exist
+// Oppretter en testbruker hvis ingen brukere eksisterer
+// Dette gjør det enklere å teste applikasjonen uten å måtte registrere en bruker først
 try {
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get();
   if (!userCount || userCount.count === 0) {
-    // Create a test user with password "password123"
+    // Opprett en testbruker med passordet "password123"
+    // Passordet lagres kryptert med bcrypt for sikkerhet
     const hashedPassword = bcrypt.hashSync('password123', 10);
     db.prepare('INSERT INTO users (username, email, password) VALUES (?, ?, ?)')
       .run('testuser', 'test@example.com', hashedPassword);
-    console.log('Created test user: testuser / password123');
+    console.log('Opprettet testbruker: testuser / password123');
   }
 } catch (err) {
-  console.error('Error checking for or creating test user:', err);
+  console.error('Feil ved sjekk eller oppretting av testbruker:', err);
 }
 
-// Check if recipes table has necessary columns, add if needed
+// Sjekk om recipes-tabellen har nødvendige kolonner, og legg til hvis de mangler
+// Dette håndterer databasemigrering hvis applikasjonen oppdateres med nye funksjoner
 try {
   const tableInfo = db.prepare("PRAGMA table_info(recipes)").all();
   
-  // Check for is_favorite column
+  // Sjekk for is_favorite kolonne
   const hasFavoriteColumn = tableInfo.some(column => column.name === 'is_favorite');
   if (!hasFavoriteColumn) {
     db.prepare("ALTER TABLE recipes ADD COLUMN is_favorite INTEGER DEFAULT 0").run();
-    console.log("Added is_favorite column to recipes table");
+    console.log("La til is_favorite-kolonne i recipes-tabellen");
   }
   
-  // Check for image_url column
+  // Sjekk for image_url kolonne
   const hasImageUrlColumn = tableInfo.some(column => column.name === 'image_url');
   if (!hasImageUrlColumn) {
     db.prepare("ALTER TABLE recipes ADD COLUMN image_url TEXT").run();
-    console.log("Added image_url column to recipes table");
+    console.log("La til image_url-kolonne i recipes-tabellen");
   }
 } catch (err) {
-  console.error("Error updating recipes table:", err);
+  console.error("Feil ved oppdatering av recipes-tabell:", err);
 }
 
-// Add default categories if they don't exist
+// Legg til standardkategorier hvis de ikke eksisterer
+// Dette sikrer at nye brukere har et sett med forhåndsdefinerte kategorier
 function addDefaultCategories() {
   const defaultCategories = [
     'Breakfast', 'Lunch', 'Dinner', 'Dessert', 'Appetizers', 
@@ -112,113 +152,121 @@ function addDefaultCategories() {
     try {
       stmt.run(category);
     } catch (err) {
-      console.error(`Error adding default category ${category}:`, err);
+      console.error(`Feil ved tillegging av standardkategori ${category}:`, err);
     }
   });
   
-  console.log("Default categories added");
+  console.log("Standardkategorier lagt til");
 }
 
-// Call function to add default categories
+// Kaller funksjon for å legge til standardkategorier
 addDefaultCategories();
 
-// Configure multer for image storage
+// Konfigurerer multer for lagring av opplastede bilder
+// Dette håndterer bildeopplasting for oppskriftene
+// Brukt KI til multer fuksjonalitet
 const uploadDir = './Public/uploads';
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // Create uploads directory if it doesn't exist
+    // Oppretter uploads-mappen hvis den ikke eksisterer
+    // Dette sikrer at applikasjonen kan lagre bilder selv om mappen mangler
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    // Create unique filename: timestamp-originalname
+    // Lager et unikt filnavn: tidsstempel-originalfilnavn
+    // Dette forhindrer navnekonflikter når flere brukere laster opp filer
     const uniqueName = Date.now() + '-' + file.originalname.replace(/\s+/g, '-');
     cb(null, uniqueName);
   }
 });
 
-// Set up file filter to only accept images
+// Setter opp filfilter for å kun akseptere bilder
+// Dette sikrer at bare gyldige bildefiler kan lastes opp
 const fileFilter = (req, file, cb) => {
-  // Accept only image files
+  // Godta bare bildefiler basert på MIME-type
   if (file.mimetype.startsWith('image/')) {
     cb(null, true);
   } else {
-    cb(new Error('Only image files are allowed!'), false);
+    cb(new Error('Bare bildefiler er tillatt!'), false);
   }
 };
 
-// Initialize multer with our configuration
+// Initialiserer multer med vår konfigurasjon
+// Dette setter opp hele håndteringen av bildeopplasting
 const upload = multer({ 
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: 5 * 1024 * 1024 // 5MB grense
   }
 });
 
-// ======================== USER ROUTES ========================
+// ======================== BRUKERRUTER ========================
 
-// Register new user
+// Registrere ny bruker
+// Håndterer brukerregistrering med passordkryptering
 app.post('/register', async (req, res) => {
   const { username, email, password } = req.body;
   
   try {
-    // Validate input
+    // Validerer inndata - alle felt er påkrevd
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'All fields are required' });
     }
     
-    // Check if username already exists
+    // Sjekker om brukernavn allerede eksisterer for å unngå duplikater
     const existingUser = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
     if (existingUser) {
       return res.status(400).json({ error: 'Username already exists' });
     }
     
-    // Hash password with bcrypt
+    // Krypterer passordet med bcrypt for sikker lagring
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    // Insert the new user
+    // Setter inn den nye brukeren i databasen
     const stmt = db.prepare('INSERT INTO users (username, email, password) VALUES (?, ?, ?)');
     const result = stmt.run(username, email, hashedPassword);
     
-    // Return success without any sensitive data
+    // Returnerer suksess uten sensitive data
     res.status(201).json({ 
       id: result.lastInsertRowid, 
       username: username,
       message: 'User registered successfully' 
     });
   } catch (err) {
-    console.error('Registration error:', err);
+    console.error('Registreringsfeil:', err);
     res.status(400).json({ error: 'Registration failed' });
   }
 });
 
-// Login user
+// Logg inn bruker
+// Autentiserer brukeren mot databasen
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   
   try {
-    // Validate input
+    // Validerer inndata - både brukernavn og passord er påkrevd
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password are required' });
     }
     
-    // Get user from database
+    // Henter bruker fra databasen
     const user = db.prepare('SELECT id, username, password FROM users WHERE username = ?').get(username);
     
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     
-    // Verify password
+    // Verifiserer passordet mot det krypterte passordet i databasen
     const passwordValid = await bcrypt.compare(password, user.password);
     if (!passwordValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     
-    // Create response object WITHOUT sensitive data
+    // Oppretter responsobjekt UTEN sensitive data for sikker retur
     const userData = {
       id: user.id,
       username: user.username,
@@ -227,21 +275,22 @@ app.post('/login', async (req, res) => {
     
     res.json(userData);
   } catch (err) {
-    console.error('Login error:', err);
+    console.error('Innloggingsfeil:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Delete user account
+// Slette brukerkonto
+// Sletter all brukerdata inkludert oppskrifter og kategorier
 app.delete('/users/:id', async (req, res) => {
   try {
-    // Delete all user's recipes
+    // Sletter alle brukerens oppskrifter først (relasjonsdata)
     db.prepare('DELETE FROM recipes WHERE user_id = ?').run(req.params.id);
     
-    // Delete user's custom categories
+    // Sletter brukerens egendefinerte kategorier
     db.prepare('DELETE FROM categories WHERE user_id = ?').run(req.params.id);
     
-    // Delete the user
+    // Sletter selve brukeren til slutt
     const result = db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
     
     if (result.changes === 0) {
@@ -250,32 +299,34 @@ app.delete('/users/:id', async (req, res) => {
     
     res.json({ message: 'User account deleted successfully' });
   } catch (err) {
-    console.error('Delete user error:', err);
+    console.error('Feil ved sletting av bruker:', err);
     res.status(500).json({ error: 'Failed to delete user' });
   }
 });
 
-// ======================== IMAGE UPLOAD ROUTE ========================
+// ======================== BILDEOPPLASTINGSRUTE ========================
 
-// Handle image uploads
+// Håndterer bildeopplasting for oppskrifter
+// Lagrer bildene i uploads-mappen og returnerer URL-en
 app.post('/upload', upload.single('recipeImage'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
     
-    // Send back the path to the uploaded file
+    // Sender tilbake stien til den opplastede filen
     const imageUrl = `/uploads/${req.file.filename}`;
     res.json({ imageUrl });
   } catch (err) {
-    console.error('Error uploading file:', err);
+    console.error('Feil ved opplasting av fil:', err);
     res.status(500).json({ error: 'Failed to upload file' });
   }
 });
 
-// ======================== RECIPE ROUTES ========================
+// ======================== OPPSKRIFTSRUTER ========================
 
-// Get all recipes for user (with category names)
+// Hent alle oppskrifter for bruker (med kategorinavn)
+// Støtter filtrering på favoritter og kategori
 app.get('/recipes', (req, res) => {
   const userId = req.query.user_id;
   const favoritesOnly = req.query.favorites === '1';
@@ -294,35 +345,36 @@ app.get('/recipes', (req, res) => {
     `;
     let params = [userId];
     
-    // Add filter for favorites if requested
+    // Legg til filter for favoritter hvis forespurt
     if (favoritesOnly) {
       query += ' AND r.is_favorite = 1';
     }
     
-    // Add filter for category if provided
+    // Legg til filter for kategori hvis oppgitt
     if (categoryId) {
       query += ' AND r.category_id = ?';
       params.push(categoryId);
     }
     
-    // Add ordering
+    // Legg til sortering (nyeste først)
     query += ' ORDER BY r.id DESC';
     
     const recipes = db.prepare(query).all(...params);
     res.json(recipes);
   } catch (err) {
-    console.error('Get recipes error:', err);
+    console.error('Feil ved henting av oppskrifter:', err);
     res.status(500).json({ error: 'Failed to fetch recipes' });
   }
 });
 
-// Get single recipe by ID (with category name)
+// Hent enkelt oppskrift etter ID (med kategorinavn)
+// Brukes for å vise detaljert oppskriftsinformasjon
 app.get('/recipes/:id', (req, res) => {
   try {
     const recipeId = req.params.id;
     const userId = req.query.user_id;
     
-    // Require user_id parameter for authorization
+    // Krever user_id-parameter for autorisasjon
     if (!userId) {
       return res.status(400).json({ error: 'User ID is required' });
     }
@@ -340,17 +392,18 @@ app.get('/recipes/:id', (req, res) => {
     
     res.json(recipe);
   } catch (err) {
-    console.error('Get recipe error:', err);
+    console.error('Feil ved henting av oppskrift:', err);
     res.status(500).json({ error: 'Failed to fetch recipe' });
   }
 });
 
-// Create new recipe
+// Lag ny oppskrift
+// Lagrer en ny oppskrift i databasen med alle felter
 app.post('/recipes', async (req, res) => {
   try {
     const { title, ingredients, instructions, category_id, user_id, image_url, is_favorite } = req.body;
     
-    // Validate required fields
+    // Validerer påkrevde felt
     if (!title || !ingredients || !instructions || !user_id) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -362,23 +415,24 @@ app.post('/recipes', async (req, res) => {
     
     res.status(201).json({ id: result.lastInsertRowid });
   } catch (err) {
-    console.error('Error creating recipe:', err);
+    console.error('Feil ved oppretting av oppskrift:', err);
     res.status(500).json({ error: 'Failed to create recipe' });
   }
 });
 
-// Update existing recipe
+// Oppdater eksisterende oppskrift
+// Oppdaterer alle felt i en eksisterende oppskrift
 app.put('/recipes/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { title, ingredients, instructions, category_id, user_id, is_favorite, image_url } = req.body;
     
-    // Validate required fields
+    // Validerer påkrevde felt
     if (!title || !ingredients || !instructions || !user_id) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
-    // Update with image_url field
+    // Oppdater med image_url-felt
     const result = db.prepare(`
       UPDATE recipes 
       SET title = ?, ingredients = ?, instructions = ?, category_id = ?, is_favorite = ?, image_url = ?
@@ -391,12 +445,13 @@ app.put('/recipes/:id', async (req, res) => {
     
     res.json({ message: 'Recipe updated successfully' });
   } catch (err) {
-    console.error('Error updating recipe:', err);
+    console.error('Feil ved oppdatering av oppskrift:', err);
     res.status(500).json({ error: 'Failed to update recipe' });
   }
 });
 
-// Delete recipe
+// Slett oppskrift
+// Fjerner en oppskrift fra databasen permanent
 app.delete('/recipes/:id', (req, res) => {
   const recipeId = req.params.id;
   const userId = req.query.user_id;
@@ -406,7 +461,7 @@ app.delete('/recipes/:id', (req, res) => {
       return res.status(400).json({ error: 'User ID is required' });
     }
     
-    // Check if recipe belongs to user
+    // Sjekker om oppskriften tilhører brukeren
     const recipe = db.prepare('SELECT * FROM recipes WHERE id = ?').get(recipeId);
     if (!recipe) {
       return res.status(404).json({ error: 'Recipe not found' });
@@ -416,17 +471,18 @@ app.delete('/recipes/:id', (req, res) => {
       return res.status(403).json({ error: 'Not authorized to delete this recipe' });
     }
     
-    // Delete the recipe
+    // Sletter oppskriften
     const result = db.prepare('DELETE FROM recipes WHERE id = ?').run(recipeId);
     
     res.json({ message: 'Recipe deleted successfully' });
   } catch (err) {
-    console.error('Delete recipe error:', err);
+    console.error('Feil ved sletting av oppskrift:', err);
     res.status(400).json({ error: 'Failed to delete recipe' });
   }
 });
 
-// Toggle favorite status
+// Veksle favoritt-status
+// Oppdaterer en oppskrifts favoritt-status
 app.put('/recipes/:id/favorite', (req, res) => {
   const recipeId = req.params.id;
   const userId = req.query.user_id;
@@ -437,13 +493,13 @@ app.put('/recipes/:id/favorite', (req, res) => {
       return res.status(400).json({ error: 'User ID is required' });
     }
     
-    // Verify ownership
+    // Verifiserer eierskap
     const recipe = db.prepare('SELECT * FROM recipes WHERE id = ? AND user_id = ?').get(recipeId, userId);
     if (!recipe) {
       return res.status(404).json({ error: 'Recipe not found or not owned by user' });
     }
     
-    // Update favorite status
+    // Oppdaterer favoritt-status
     db.prepare('UPDATE recipes SET is_favorite = ? WHERE id = ?').run(isFavorite, recipeId);
     
     res.json({ 
@@ -451,14 +507,15 @@ app.put('/recipes/:id/favorite', (req, res) => {
       is_favorite: !!isFavorite
     });
   } catch (err) {
-    console.error('Toggle favorite error:', err);
+    console.error('Feil ved oppdatering av favoritt-status:', err);
     res.status(500).json({ error: 'Failed to update favorite status' });
   }
 });
 
-// ======================== CATEGORY ROUTES ========================
+// ======================== KATEGORIRUTER ========================
 
-// Get all categories (both default and user-specific)
+// Hent alle kategorier (både standard og brukerspesifikke)
+// Returnerer kategorier tilpasset brukerens tilgang
 app.get('/categories', (req, res) => {
   const userId = req.query.user_id;
   
@@ -466,21 +523,22 @@ app.get('/categories', (req, res) => {
     let categories;
     
     if (userId) {
-      // Return default (null user_id) and user-specific categories
+      // Returner standard (null user_id) og brukerspesifikke kategorier
       categories = db.prepare('SELECT * FROM categories WHERE user_id IS NULL OR user_id = ? ORDER BY name').all(userId);
     } else {
-      // Return only default categories
+      // Returner kun standardkategorier
       categories = db.prepare('SELECT * FROM categories WHERE user_id IS NULL ORDER BY name').all();
     }
     
     res.json(categories);
   } catch (err) {
-    console.error('Get categories error:', err);
+    console.error('Feil ved henting av kategorier:', err);
     res.status(500).json({ error: 'Failed to fetch categories' });
   }
 });
 
-// Get single category by ID
+// Hent enkeltkategori etter ID
+// Brukes for å hente detaljer om en spesifikk kategori
 app.get('/categories/:id', (req, res) => {
   try {
     const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(req.params.id);
@@ -489,12 +547,13 @@ app.get('/categories/:id', (req, res) => {
     }
     res.json(category);
   } catch (err) {
-    console.error('Get category error:', err);
+    console.error('Feil ved henting av kategori:', err);
     res.status(500).json({ error: 'Failed to fetch category' });
   }
 });
 
-// Get recipes by category
+// Hent oppskrifter etter kategori
+// Returnerer alle oppskrifter i en spesifikk kategori for en bruker
 app.get('/categories/:id/recipes', (req, res) => {
   const userId = req.query.user_id;
   
@@ -503,7 +562,7 @@ app.get('/categories/:id/recipes', (req, res) => {
       return res.status(400).json({ error: 'User ID is required' });
     }
     
-    // Only return recipes in this category that belong to the user
+    // Returner kun oppskrifter i denne kategorien som tilhører brukeren
     const recipes = db.prepare(`
       SELECT r.*, c.name as category_name 
       FROM recipes r
@@ -514,12 +573,13 @@ app.get('/categories/:id/recipes', (req, res) => {
       
     res.json(recipes);
   } catch (err) {
-    console.error('Get recipes by category error:', err);
+    console.error('Feil ved henting av oppskrifter etter kategori:', err);
     res.status(500).json({ error: 'Failed to fetch recipes' });
   }
 });
 
-// Create new category
+// Opprett ny kategori
+// Lager en ny tilpasset kategori for en bruker
 app.post('/categories', (req, res) => {
   const { name, user_id } = req.body;
   
@@ -528,7 +588,8 @@ app.post('/categories', (req, res) => {
       return res.status(400).json({ error: 'Category name is required' });
     }
     
-    // Check if category with this name already exists for this user
+    // Sjekker om kategori med dette navnet allerede eksisterer for denne brukeren
+    // Dette forhindrer dupliserte kategorinavn
     const existingCategory = db.prepare('SELECT id FROM categories WHERE name = ? AND (user_id IS NULL OR user_id = ?)').get(name, user_id);
     if (existingCategory) {
       return res.status(400).json({ error: 'Category with this name already exists' });
@@ -544,12 +605,13 @@ app.post('/categories', (req, res) => {
       message: 'Category created successfully'
     });
   } catch (err) {
-    console.error('Create category error:', err);
+    console.error('Feil ved oppretting av kategori:', err);
     res.status(400).json({ error: 'Failed to create category' });
   }
 });
 
-// Delete category (only if it belongs to the user and has no recipes)
+// Slett kategori (bare hvis den tilhører brukeren og ikke har oppskrifter)
+// Fjerner en brukerdefinert kategori hvis den ikke er i bruk
 app.delete('/categories/:id', (req, res) => {
   const categoryId = req.params.id;
   const userId = req.query.user_id;
@@ -559,24 +621,24 @@ app.delete('/categories/:id', (req, res) => {
       return res.status(400).json({ error: 'User ID is required' });
     }
     
-    // Check if category exists and belongs to user
+    // Sjekker om kategorien eksisterer og tilhører brukeren
     const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(categoryId);
     
     if (!category) {
       return res.status(404).json({ error: 'Category not found' });
     }
     
-    // Don't allow deletion of default categories
+    // Tillater ikke sletting av standardkategorier
     if (category.user_id === null) {
       return res.status(403).json({ error: 'Default categories cannot be deleted' });
     }
     
-    // Check if the category belongs to the user
+    // Sjekker om kategorien tilhører brukeren
     if (parseInt(category.user_id) !== parseInt(userId)) {
       return res.status(403).json({ error: 'Not authorized to delete this category' });
     }
     
-    // Check if any recipes use this category
+    // Sjekker om noen oppskrifter bruker denne kategorien
     const recipesUsingCategory = db.prepare('SELECT COUNT(*) as count FROM recipes WHERE category_id = ?').get(categoryId);
     
     if (recipesUsingCategory.count > 0) {
@@ -586,28 +648,29 @@ app.delete('/categories/:id', (req, res) => {
       });
     }
     
-    // Delete the category
+    // Sletter kategorien
     const result = db.prepare('DELETE FROM categories WHERE id = ?').run(categoryId);
     
     res.json({ message: 'Category deleted successfully' });
   } catch (err) {
-    console.error('Delete category error:', err);
+    console.error('Feil ved sletting av kategori:', err);
     res.status(500).json({ error: 'Failed to delete category' });
   }
 });
 
-// ======================== DEBUG ROUTE ========================
+// ======================== FEILSØKINGSRUTE ========================
 
-// Debug route to check database and user status
+// Feilsøkingsrute for å sjekke database- og brukerstatus
+// Brukes for å verifisere at systemet fungerer som forventet
 app.get('/api/debug', (req, res) => {
   try {
-    // Check database connection
+    // Sjekker databasetilkobling
     const dbTest = db.prepare('SELECT 1 as test').get();
     
-    // Check users table
+    // Sjekker brukertabell
     const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get();
     
-    // Send debug information
+    // Sender feilsøkingsinformasjon
     res.json({
       status: 'OK',
       database: {
@@ -620,9 +683,10 @@ app.get('/api/debug', (req, res) => {
   }
 });
 
-// ======================== DASHBOARD ROUTE ========================
+// ======================== DASHBORDRUTE ========================
 
-// Get dashboard data for user
+// Hent dashboarddata for bruker
+// Gir en oversikt over brukerens oppskrifter og statistikk
 app.get('/dashboard', (req, res) => {
   const userId = req.query.user_id;
   
@@ -631,12 +695,12 @@ app.get('/dashboard', (req, res) => {
       return res.status(400).json({ error: 'User ID is required' });
     }
     
-    // Get recipe counts
+    // Henter oppskriftstall for statistikk
     const totalCount = db.prepare('SELECT COUNT(*) as count FROM recipes WHERE user_id = ?').get(userId).count;
     const favoriteCount = db.prepare('SELECT COUNT(*) as count FROM recipes WHERE user_id = ? AND is_favorite = 1').get(userId).count;
     const categoryCount = db.prepare('SELECT COUNT(DISTINCT category_id) as count FROM recipes WHERE user_id = ? AND category_id IS NOT NULL').get(userId).count;
     
-    // Get recent recipes (limit to 3)
+    // Henter nylige oppskrifter (begrenset til 3)
     const recentRecipes = db.prepare(`
       SELECT r.id, r.title, r.category_id, r.is_favorite, r.image_url, c.name as category_name 
       FROM recipes r
@@ -645,7 +709,7 @@ app.get('/dashboard', (req, res) => {
       ORDER BY r.id DESC LIMIT 3
     `).all(userId);
     
-    // Get favorite recipes (limit to 3)
+    // Henter favorittoppskrifter (begrenset til 3)
     const favoriteRecipes = db.prepare(`
       SELECT r.id, r.title, r.category_id, r.is_favorite, r.image_url, c.name as category_name 
       FROM recipes r
@@ -664,12 +728,13 @@ app.get('/dashboard', (req, res) => {
       favoriteRecipes
     });
   } catch (err) {
-    console.error('Get dashboard error:', err);
+    console.error('Feil ved henting av dashboarddata:', err);
     res.status(500).json({ error: 'Failed to fetch dashboard data' });
   }
 });
 
-// Start server
+// Starter serveren
+// Gjør applikasjonen tilgjengelig på angitt port
 app.listen(port, () => {
-  console.log(`Recipe Manager app listening at http://localhost:${port}`);
+  console.log(`Oppskriftsbehandler kjører på http://localhost:${port}`);
 });

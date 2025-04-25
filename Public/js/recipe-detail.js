@@ -1,66 +1,75 @@
 /**
- * Recipe Manager - Recipe Detail Page
- * Handles loading and displaying detailed recipe information
+ * RecipeManager - Oppskriftsdetaljer
+ * ---------------------------------
+ * Denne filen håndterer visning av detaljert oppskriftsinformasjon,
+ * inkludert ingredienser, instruksjoner og interaktive funksjoner som 
+ * favorittmarkering og sletting.
  */
 
-// Check authentication when the page loads
+// Sjekk autentisering når siden lastes
 document.addEventListener('DOMContentLoaded', () => {
-    // Get user from localStorage
+    // Hent bruker fra lokallagring
     const user = JSON.parse(localStorage.getItem('user'));
     if (!user || !user.id) {
-        // User not logged in, redirect to login
+        // Bruker ikke innlogget, omdiriger til innloggingssiden
         window.location.href = '/login.html';
         return;
     }
     
-    // Get recipe ID from URL
+    // Hent oppskrifts-ID fra URL-en
     const urlParams = new URLSearchParams(window.location.search);
     
-    // Check for both regular id and encoded r parameter
+    // Sjekk for både vanlig id og kodet r-parameter
     const regularId = urlParams.get('id');
     const encodedId = urlParams.get('r');
     
-    // Determine which ID to use
+    // Bestem hvilken ID som skal brukes
     let recipeId;
     
     if (encodedId) {
-        // If we have an encoded ID, decode it
+        // Hvis vi har en kodet ID, dekoder vi den
         recipeId = decodeRecipeId(encodedId);
         if (!recipeId) {
             showError('Invalid recipe identifier');
             return;
         }
     } else if (regularId) {
-        // Use the regular ID if no encoded ID is present
+        // Bruk den vanlige ID-en hvis ingen kodet ID er tilstede
         recipeId = regularId;
     } else {
         showError('Recipe ID is missing');
         return;
     }
     
-    // Load recipe details
-    loadRecipeDetails(recipeId, user.id);
-    
-    // Set up event listeners
-    setupEventListeners(recipeId, user.id);
+    // Last inn oppskriftsdetaljer
+    loadRecipeDetails(recipeId, user.id)
+        .then(() => {
+            // Sett opp hendelsesfunksjoner ETTER at innholdet er lastet og vist
+            setupEventListeners(recipeId, user.id);
+        })
+        .catch(error => {
+            console.error('Error in recipe loading process:', error);
+            showError('An unexpected error occurred');
+        });
 });
 
 /**
- * Load recipe details from the API
- * @param {string|number} recipeId - The ID of the recipe to load
- * @param {string|number} userId - The ID of the current user
+ * Laster oppskriftsdetaljer fra API
+ * @param {string|number} recipeId - ID-en til oppskriften som skal lastes
+ * @param {string|number} userId - ID-en til gjeldende bruker
+ * @returns {Promise} - Promise som løses når innholdet er lastet
  */
 async function loadRecipeDetails(recipeId, userId) {
     try {
-        // Show loading state
+        // Vis lastestatus
         const container = document.getElementById('recipe-detail-container');
         container.innerHTML = '<div class="loading">Loading recipe details...</div>';
         
-        // Fetch recipe data with user ID for authorization
+        // Hent oppskriftsdata med bruker-ID for autorisasjon
         const response = await fetch(`/recipes/${recipeId}?user_id=${userId}`);
         
         if (!response.ok) {
-            // Handle errors, including 404 for not found or not authorized
+            // Håndterer feil, inkludert 404 for ikke funnet eller ikke autorisert
             if (response.status === 404) {
                 showError('Recipe not found or you do not have permission to view it');
             } else {
@@ -72,8 +81,8 @@ async function loadRecipeDetails(recipeId, userId) {
         const recipe = await response.json();
         console.log('Recipe loaded:', recipe);
         
-        // Display recipe details
-        displayRecipeDetails(recipe);
+        // Vis oppskriftsdetaljer
+        displayRecipeDetails(recipe, userId);
     } catch (err) {
         console.error('Error loading recipe details:', err);
         showError('An error occurred while loading the recipe');
@@ -81,13 +90,14 @@ async function loadRecipeDetails(recipeId, userId) {
 }
 
 /**
- * Display detailed recipe information
- * @param {Object} recipe - Recipe data object
+ * Viser detaljert oppskriftsinformasjon
+ * @param {Object} recipe - Oppskriftsdataobjekt
+ * @param {string|number} userId - ID-en til gjeldende bruker
  */
-function displayRecipeDetails(recipe) {
+function displayRecipeDetails(recipe, userId) {
     const container = document.getElementById('recipe-detail-container');
     
-    // Prepare ingredients and instructions lists
+    // Forbered ingrediens- og instruksjonslister
     const ingredientsList = recipe.ingredients.split('\n')
         .filter(item => item.trim())
         .map(item => `<li>${item.trim()}</li>`)
@@ -98,7 +108,7 @@ function displayRecipeDetails(recipe) {
         .map((item, index) => `<li><span class="step-number">${index + 1}</span> ${item.trim()}</li>`)
         .join('');
     
-    // Determine image HTML
+    // Bestem bilde-HTML
     const imageHtml = recipe.image_url
         ? `<div class="recipe-detail-image" style="background-image: url('${recipe.image_url}')"></div>`
         : `<div class="recipe-detail-image no-image">
@@ -106,37 +116,48 @@ function displayRecipeDetails(recipe) {
              <p>No image available</p>
            </div>`;
     
-    // Generate category badge if category exists
+    // Generer kategorietikett hvis kategori eksisterer
     const categoryBadge = recipe.category_name
         ? `<span class="category-badge">${recipe.category_name}</span>`
         : '<span class="category-badge">Uncategorized</span>';
         
-    // Favorite star icon
+    // Favoritt-stjerneikon - bruker aktiv-klasse for styling
     const favoriteIcon = recipe.is_favorite
         ? '<i class="fas fa-star"></i>'
         : '<i class="far fa-star"></i>';
     
-    // Build the HTML with a new structure for better layout
+    const favoriteActiveClass = recipe.is_favorite ? 'active' : '';
+    
+    // Bygger HTML med forbedret favorittknapp-styling og rediger-lenke med user_id
     container.innerHTML = `
+        <div class="top-navigation">
+            <a href="/recipes.html" class="btn-back">
+                <i class="fas fa-arrow-left"></i> Back to Recipes
+            </a>
+        </div>
+        
         <div class="recipe-detail-header">
             <div class="recipe-detail-title-section">
                 <h1>${recipe.title}</h1>
+                <div class="recipe-detail-actions">
+                    <a href="/edit-recipe.html?id=${recipe.id}&user_id=${userId}" class="action-btn btn-edit">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <button id="delete-recipe" class="action-btn btn-delete">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
             </div>
             
             <div class="recipe-detail-meta">
                 ${categoryBadge}
-                <button id="favorite-toggle" class="favorite-btn" data-is-favorite="${recipe.is_favorite ? 'true' : 'false'}">
-                    ${favoriteIcon} ${recipe.is_favorite ? 'Favorite' : 'Add to favorites'}
-                </button>
-            </div>
-            
-            <div class="recipe-detail-actions">
-                <a href="/edit-recipe.html?id=${recipe.id}" class="btn">
-                    <i class="fas fa-edit"></i> Edit Recipe
-                </a>
-                <button id="delete-recipe" class="btn btn-danger">
-                    <i class="fas fa-trash"></i> Delete Recipe
-                </button>
+                <div class="recipe-detail-favorite">
+                    <button id="favorite-toggle" class="favorite-btn recipe-favorite ${favoriteActiveClass}" 
+                            data-is-favorite="${recipe.is_favorite ? 'true' : 'false'}"
+                            data-recipe-id="${recipe.id}">
+                        ${favoriteIcon}
+                    </button>
+                </div>
             </div>
         </div>
         
@@ -156,12 +177,6 @@ function displayRecipeDetails(recipe) {
                     ${instructionsList}
                 </ol>
             </div>
-        </div>
-        
-        <div class="recipe-detail-footer">
-            <a href="/recipes.html" class="btn">
-                <i class="fas fa-arrow-left"></i> Back to Recipes
-            </a>
         </div>
         
         <div id="delete-modal" class="modal">
@@ -184,98 +199,149 @@ function displayRecipeDetails(recipe) {
 }
 
 /**
- * Set up event listeners for recipe actions
- * @param {string|number} recipeId - The ID of the current recipe
- * @param {string|number} userId - The ID of the current user
+ * Konfigurerer hendelsesfunksjoner for oppskriftshandlinger
+ * @param {string|number} recipeId - ID-en til gjeldende oppskrift
+ * @param {string|number} userId - ID-en til gjeldende bruker
  */
 function setupEventListeners(recipeId, userId) {
-    // We need to wait a bit for the content to be rendered
-    setTimeout(() => {
-        // Favorite toggle button
-        const favoriteToggle = document.getElementById('favorite-toggle');
-        if (favoriteToggle) {
-            favoriteToggle.addEventListener('click', () => toggleFavorite(recipeId, userId, favoriteToggle));
-        }
+    console.log('Setting up event listeners for recipe', recipeId);
+    
+    // Favorittknapp
+    const favoriteToggle = document.getElementById('favorite-toggle');
+    if (favoriteToggle) {
+        console.log('Found favorite toggle button:', favoriteToggle);
         
-        // Delete recipe button and modal controls
-        const deleteRecipeBtn = document.getElementById('delete-recipe');
-        if (deleteRecipeBtn) {
-            deleteRecipeBtn.addEventListener('click', showDeleteConfirmation);
+        // Legg til eksplisitt klikkhåndterer med konsolllogging
+        favoriteToggle.onclick = function() {
+            console.log('Favorite button clicked!');
+            toggleFavorite(recipeId, userId, this);
+        };
+    } else {
+        console.warn('Favorite toggle button not found in the DOM');
+    }
+    
+    // Sletteknapp og modalkontroller
+    const deleteRecipeBtn = document.getElementById('delete-recipe');
+    if (deleteRecipeBtn) {
+        deleteRecipeBtn.addEventListener('click', showDeleteConfirmation);
+    }
+    
+    const cancelDeleteBtn = document.getElementById('cancel-delete');
+    if (cancelDeleteBtn) {
+        cancelDeleteBtn.addEventListener('click', hideDeleteConfirmation);
+    }
+    
+    const confirmDeleteBtn = document.getElementById('confirm-delete');
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', () => deleteRecipe(recipeId, userId));
+    }
+    
+    // Modal-overtrekk-klikk for å avbryte
+    const modalOverlay = document.querySelector('.modal-overlay');
+    if (modalOverlay) {
+        modalOverlay.addEventListener('click', hideDeleteConfirmation);
+    }
+    
+    // ESC-tast for å lukke modal
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.body.classList.contains('modal-open')) {
+            hideDeleteConfirmation();
         }
-        
-        const cancelDeleteBtn = document.getElementById('cancel-delete');
-        if (cancelDeleteBtn) {
-            cancelDeleteBtn.addEventListener('click', hideDeleteConfirmation);
+    });
+    
+    // Sjekk om redigeringsknappen har riktig bruker-ID
+    const editBtn = document.querySelector('.btn-edit');
+    if (editBtn) {
+        const href = editBtn.getAttribute('href');
+        if (!href.includes('user_id=')) {
+            // Korrigerer href hvis bruker-ID mangler
+            editBtn.setAttribute('href', `${href}&user_id=${userId}`);
         }
-        
-        const confirmDeleteBtn = document.getElementById('confirm-delete');
-        if (confirmDeleteBtn) {
-            confirmDeleteBtn.addEventListener('click', () => deleteRecipe(recipeId, userId));
-        }
-        
-        // Modal overlay click to cancel
-        const modalOverlay = document.querySelector('.modal-overlay');
-        if (modalOverlay) {
-            modalOverlay.addEventListener('click', hideDeleteConfirmation);
-        }
-        
-        // ESC key to close modal
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && document.body.classList.contains('modal-open')) {
-                hideDeleteConfirmation();
-            }
-        });
-    }, 100);
+    }
 }
 
 /**
- * Toggle favorite status for a recipe
- * @param {string|number} recipeId - The ID of the recipe
- * @param {string|number} userId - The ID of the current user
- * @param {HTMLElement} button - The favorite toggle button
+ * Veksler favoritt-status for en oppskrift
+ * @param {string|number} recipeId - ID-en til oppskriften
+ * @param {string|number} userId - ID-en til gjeldende bruker
+ * @param {HTMLElement} button - Favoritt-vekselknappen
  */
 async function toggleFavorite(recipeId, userId, button) {
+    console.log('Toggle favorite called for recipe:', recipeId);
+    
     try {
-        // Get current favorite status from data attribute
-        const isFavorite = button.dataset.isFavorite !== 'true';
+        // Hent gjeldende favoritt-status fra dataattributt og veksle den
+        const currentStatus = button.dataset.isFavorite === 'true';
+        const newStatus = !currentStatus;
         
-        // Disable button during request
+        console.log('Current status:', currentStatus, 'New status:', newStatus);
+        
+        // Lagre originalstatus før veksling (for tilbakestilling om nødvendig)
+        const originalStatus = currentStatus;
+        
+        // Optimistisk brukergrensesnitt-oppdatering først for bedre brukeropplevelse
+        button.dataset.isFavorite = String(newStatus);
+        
+        if (newStatus) {
+            button.classList.add('active');
+            button.innerHTML = '<i class="fas fa-star"></i>';
+            button.classList.add('just-favorited');
+            setTimeout(() => button.classList.remove('just-favorited'), 500);
+        } else {
+            button.classList.remove('active');
+            button.innerHTML = '<i class="far fa-star"></i>';
+        }
+        
+        // Deaktiver knappen under forespørselen
         button.disabled = true;
         
-        // Send request to toggle favorite status
+        // Send forespørsel for å veksle favoritt-status
         const response = await fetch(`/recipes/${recipeId}/favorite?user_id=${userId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ is_favorite: isFavorite })
+            body: JSON.stringify({ is_favorite: newStatus })
         });
         
+        console.log('Response status:', response.status);
+        
         if (!response.ok) {
-            throw new Error('Failed to update favorite status');
+            throw new Error(`Failed to update favorite status: ${response.status}`);
         }
         
-        const data = await response.json();
-        console.log('Favorite status updated:', data);
-        
-        // Update button text and icon
-        button.dataset.isFavorite = isFavorite;
-        if (isFavorite) {
-            button.innerHTML = '<i class="fas fa-star"></i> Favorite';
-        } else {
-            button.innerHTML = '<i class="far fa-star"></i> Add to favorites';
+        // Forsøk å tolke respons, men ikke mislykkes hvis ingen JSON returneres
+        try {
+            const data = await response.json();
+            console.log('Favorite status updated:', data);
+        } catch (jsonError) {
+            // Responsen kan være tom eller ikke JSON, men fortsatt vellykket
+            console.log('Favorite status updated successfully (no JSON response)');
         }
+        
     } catch (err) {
         console.error('Error updating favorite status:', err);
+        
+        // Tilbakestill brukergrensesnitt-endringer hvis API-kall mislykkes
+        button.dataset.isFavorite = String(originalStatus);
+        
+        if (originalStatus) {
+            button.classList.add('active');
+            button.innerHTML = '<i class="fas fa-star"></i>';
+        } else {
+            button.classList.remove('active');
+            button.innerHTML = '<i class="far fa-star"></i>';
+        }
+        
         alert('Failed to update favorite status. Please try again.');
     } finally {
-        // Re-enable button
+        // Aktiver knappen igjen
         button.disabled = false;
     }
 }
 
 /**
- * Show delete confirmation modal
+ * Vis slettebekreftelsesmodal
  */
 function showDeleteConfirmation() {
     const modal = document.getElementById('delete-modal');
@@ -286,7 +352,7 @@ function showDeleteConfirmation() {
 }
 
 /**
- * Hide delete confirmation modal
+ * Skjul slettebekreftelsesmodal
  */
 function hideDeleteConfirmation() {
     const modal = document.getElementById('delete-modal');
@@ -299,20 +365,20 @@ function hideDeleteConfirmation() {
 }
 
 /**
- * Delete a recipe and redirect to recipes page
- * @param {string|number} recipeId - The ID of the recipe to delete
- * @param {string|number} userId - The ID of the current user
+ * Slett en oppskrift og omdiriger til oppskriftssiden
+ * @param {string|number} recipeId - ID-en til oppskriften som skal slettes
+ * @param {string|number} userId - ID-en til gjeldende bruker
  */
 async function deleteRecipe(recipeId, userId) {
     try {
-        // Show a deleting state in the modal
+        // Vis en slettestatus i modalen
         const confirmDeleteBtn = document.getElementById('confirm-delete');
         if (confirmDeleteBtn) {
             confirmDeleteBtn.disabled = true;
             confirmDeleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
         }
         
-        // Send delete request
+        // Send sletteforespørsel
         const response = await fetch(`/recipes/${recipeId}?user_id=${userId}`, {
             method: 'DELETE'
         });
@@ -321,27 +387,27 @@ async function deleteRecipe(recipeId, userId) {
             throw new Error('Failed to delete recipe');
         }
         
-        // Redirect to recipes page on success
+        // Omdiriger til oppskriftsside ved vellykket sletting
         window.location.href = '/recipes.html';
     } catch (err) {
         console.error('Error deleting recipe:', err);
         alert('Failed to delete recipe. Please try again.');
         
-        // Reset button on error
+        // Tilbakestill knapp ved feil
         const confirmDeleteBtn = document.getElementById('confirm-delete');
         if (confirmDeleteBtn) {
             confirmDeleteBtn.disabled = false;
             confirmDeleteBtn.innerHTML = 'Delete';
         }
         
-        // Hide the modal
+        // Skjul modalen
         hideDeleteConfirmation();
     }
 }
 
 /**
- * Show error message when recipe can't be loaded
- * @param {string} message - The error message to display
+ * Vis feilmelding når oppskriften ikke kan lastes
+ * @param {string} message - Feilmeldingen som skal vises
  */
 function showError(message) {
     const container = document.getElementById('recipe-detail-container');
@@ -352,4 +418,19 @@ function showError(message) {
             <a href="/recipes.html" class="btn">Back to My Recipes</a>
         </div>
     `;
+}
+
+/**
+ * Dekoder en kodet oppskrifts-ID
+ * @param {string} encodedId - Den kodede oppskrifts-ID-en
+ * @returns {string|null} - Dekodet ID eller null hvis ugyldig
+ */
+function decodeRecipeId(encodedId) {
+    // Enkel dekodingsimplementasjon - erstatt med faktisk implementering
+    try {
+        return atob(encodedId);
+    } catch (e) {
+        console.error('Invalid encoded ID:', e);
+        return null;
+    }
 }
