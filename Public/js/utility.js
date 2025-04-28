@@ -39,36 +39,3 @@ function encodeRecipeId(id) {
   // - Erstatter '/' med '_'
   return btoa(idWithSalt).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 }
-
-/**
- * Dekoder en oppskrifts-ID fra en URL
- * @param {string} encoded - Den kodede oppskrifts-IDen
- * @returns {string|null} Original ID eller null hvis ugyldig
- */
-function decodeRecipeId(encoded) {
-  // Sjekk om den kodede strengen er tom eller udefinert
-  if (!encoded) return null;
-  
-  try {
-    // Gjenoppretter original Base64-format ved å erstatte URL-vennlige tegn
-    // Dette gjør at atob()-funksjonen kan dekode strengen korrekt
-    const paddedString = encoded.replace(/-/g, '+').replace(/_/g, '/');
-    const decoded = atob(paddedString);
-    
-    // Hent ut den originale ID-delen (før salt-verdien)
-    // Dette skiller den faktiske IDen fra sikkerhetssaltet
-    const parts = decoded.split(':');
-    
-    // Verifiser at salt-delen eksisterer og er korrekt
-    // Dette sikrer at koden ikke har blitt tuklet med
-    if (parts.length > 1 && parts[1] === SALT) {
-      return parts[0];
-    }
-    return null;
-  } catch (err) {
-    // Logger feil ved dekoding, som kan skje med ugyldige Base64-strenger
-    // eller hvis noen prøver å manipulere URL-parametrene
-    console.error("Feil ved dekoding av oppskrifts-ID:", err);
-    return null;
-  }
-}
