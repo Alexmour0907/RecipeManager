@@ -9,7 +9,7 @@
  * datalagring via better-sqlite3-biblioteket.
  * 
  * Hovedfunksjonalitet:
- * - Brukeradministrasjon: registrering, innlogging og kontosletting
+ * - Brukeradministrasjon: registrering, innlogging og "kontosletting - ikke implimentert enda"
  * - Oppskriftsadministrasjon: opprettelse, lagring, redigering og sletting av oppskrifter
  * - Kategorihåndtering: standard og brukerdefinerte kategorier
  * - Bildeopplasting: lagring av bilder for oppskrifter
@@ -282,6 +282,7 @@ app.post('/login', async (req, res) => {
 
 // Slette brukerkonto
 // Sletter all brukerdata inkludert oppskrifter og kategorier
+// ikke implementert enda
 app.delete('/users/:id', async (req, res) => {
   try {
     // Sletter alle brukerens oppskrifter først (relasjonsdata)
@@ -399,20 +400,30 @@ app.get('/recipes/:id', (req, res) => {
 
 // Lag ny oppskrift
 // Lagrer en ny oppskrift i databasen med alle felter
+// Setter opp et POST-endpunkt for /recipies ruten
+// Bruker POST fordi vi oppretter en ny ressurs
 app.post('/recipes', async (req, res) => {
   try {
     const { title, ingredients, instructions, category_id, user_id, image_url, is_favorite } = req.body;
     
     // Validerer påkrevde felt
+    // Sjekker at alle nødvendige felt er tilstede før vi prøver å opprette oppskriften
+    // Retunerer 400 Bad Request hvis noen felt mangler
     if (!title || !ingredients || !instructions || !user_id) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
+    // Selve SQL-spørringen oppretter en ny rad i recipes-tabellen.
     const result = db.prepare(`
       INSERT INTO recipes (title, ingredients, instructions, category_id, user_id, is_favorite, image_url) 
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(title, ingredients, instructions, category_id || null, user_id, is_favorite || 0, image_url || null);
-    
+    // category_id og image_url kan være null, så vi setter dem til null hvis de ikke er oppgitt
+    // Samme gjelder is_favorite, som settes til 0 (false) som standard
+
+    // retunerer 201 Created hvis opprettelsen var vellykket
+    // retunerer 500 Internal Server Error hvis det oppstod en feil under opprettelsen
+    // og logger feilen til konsollen for feilsøking
     res.status(201).json({ id: result.lastInsertRowid });
   } catch (err) {
     console.error('Feil ved oppretting av oppskrift:', err);
@@ -424,8 +435,9 @@ app.post('/recipes', async (req, res) => {
 // Oppdaterer alle felt i en eksisterende oppskrift
 app.put('/recipes/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const { title, ingredients, instructions, category_id, user_id, is_favorite, image_url } = req.body;
+    const { id } = req.params; // Fanger opp id fra URL-en
+    const { title, ingredients, instructions, category_id, user_id, is_favorite, image_url } = req.body; 
+    // Henter og validerer data fra forespørselen
     
     // Validerer påkrevde felt
     if (!title || !ingredients || !instructions || !user_id) {
@@ -433,16 +445,25 @@ app.put('/recipes/:id', async (req, res) => {
     }
     
     // Oppdater med image_url-felt
+    // Klargjør og utfører SQL-spørringen for oppdatering av oppskriften
     const result = db.prepare(`
       UPDATE recipes 
       SET title = ?, ingredients = ?, instructions = ?, category_id = ?, is_favorite = ?, image_url = ?
       WHERE id = ? AND user_id = ?
     `).run(title, ingredients, instructions, category_id || null, is_favorite || 0, image_url, id, user_id);
+    // category_id og image_url kan være null, så vi setter dem til null hvis de ikke er oppgitt
+    // Samme gjelder is_favorite, som settes til 0 (false) som standard
+    // Her oppdateres oppskriften i databasen hvis både oppskriftens ID og user_id stemmer – dette sikrer at kun eieren kan oppdatere sin egen oppskrift.(Se linje 452)
+    
+    // Sjekker om oppskriften ble funnet og oppdatert
+    // Hvis result.changes er 0, betyr det at ingen rader ble oppdatert,
+    // enten fordi man ikke har tilgang til oppskriften eller at den ikke eksisterer
     
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Recipe not found or you do not have permission to edit it' });
     }
     
+    // retunerer 500 Internal Server Error hvis det oppstod en feil under oppdateringen
     res.json({ message: 'Recipe updated successfully' });
   } catch (err) {
     console.error('Feil ved oppdatering av oppskrift:', err);
@@ -450,30 +471,41 @@ app.put('/recipes/:id', async (req, res) => {
   }
 });
 
+// Oppskriften oppdateres ved at klienten sender en PUT-forespørsel med de nye dataene. 
+// Serveren validerer, oppdaterer databasen, og sørger for at kun den riktige brukeren får lov til å gjøre endringen.
+
+
 // Slett oppskrift
 // Fjerner en oppskrift fra databasen permanent
+// Håndterer sletting av oppskrifter via HTTP DELETE
 app.delete('/recipes/:id', (req, res) => {
+  // recipeId trekkes fra URL-en, og userId kommer fra forespørselen
   const recipeId = req.params.id;
   const userId = req.query.user_id;
   
   try {
+    // Hvis userId ikke er oppgitt, returneres en 400 Bad Request
     if (!userId) {
       return res.status(400).json({ error: 'User ID is required' });
     }
     
-    // Sjekker om oppskriften tilhører brukeren
+    // Sjekker om oppskriften finnes: Hentes fra databasen – hvis den ikke eksisterer, returneres 404.
     const recipe = db.prepare('SELECT * FROM recipes WHERE id = ?').get(recipeId);
     if (!recipe) {
       return res.status(404).json({ error: 'Recipe not found' });
     }
     
+    // Verifiserer eierskap: Sjekker om oppskriften tilhører brukeren
+    // Hvis oppskriften ikke tilhører brukeren som forsøker å slette, returneres 403 (forbudt).
     if (recipe.user_id != userId) {
       return res.status(403).json({ error: 'Not authorized to delete this recipe' });
     }
     
     // Sletter oppskriften
+    // Når alt er validert, fjernes oppføringen fra databasen.
     const result = db.prepare('DELETE FROM recipes WHERE id = ?').run(recipeId);
     
+    //  Hvis noe går galt underveis, logges feilen og det returneres en generell 400-feil.
     res.json({ message: 'Recipe deleted successfully' });
   } catch (err) {
     console.error('Feil ved sletting av oppskrift:', err);
@@ -483,6 +515,7 @@ app.delete('/recipes/:id', (req, res) => {
 
 // Veksle favoritt-status
 // Oppdaterer en oppskrifts favoritt-status
+// Bruker PUT for å oppdatere eksisterende ressurs (opp)
 app.put('/recipes/:id/favorite', (req, res) => {
   const recipeId = req.params.id;
   const userId = req.query.user_id;

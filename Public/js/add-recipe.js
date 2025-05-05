@@ -368,6 +368,7 @@ function setupImageUpload() {
  */
 async function handleFormSubmit(e) {
     // Forhindre standard skjemainnsending for å bruke AJAX i stedet
+    // AJAX lar JavaScript hente data fra serveren uten å laste inn siden på nytt
     e.preventDefault();
     
     // Hent skjema og viktige UI-elementer for statusoppdateringer
@@ -404,6 +405,7 @@ async function handleFormSubmit(e) {
         
         if (imageInput && imageInput.files && imageInput.files[0]) {
             // Opprett FormData-objekt for å håndtere fileopplasting
+            // FormData brukes her til å sende bilde fra input-felt til serveren via en AJAX-forespørsel.
             const formData = new FormData();
             formData.append('recipeImage', imageInput.files[0]);
             

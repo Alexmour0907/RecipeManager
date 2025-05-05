@@ -95,20 +95,27 @@ async function loadRecipeDetails(recipeId, userId) {
  * @param {string|number} userId - ID-en til gjeldende bruker
  */
 function displayRecipeDetails(recipe, userId) {
+    // finner div container hvor oppskriftens detaljer skal vises
     const container = document.getElementById('recipe-detail-container');
     
     // Forbered ingrediens- og instruksjonslister
+    // Deler opp ingredienser og instruksjoner i linjer og filtrerer tomme linjer
+    // og lager en liste med HTML-elementer (<li>)
     const ingredientsList = recipe.ingredients.split('\n')
         .filter(item => item.trim())
         .map(item => `<li>${item.trim()}</li>`)
         .join('');
     
+    // gjør det samme som ingridienser
+    // i tillegg nummereres hvert punkt i instruksjonene ved å bruke index + 1
     const instructionsList = recipe.instructions.split('\n')
         .filter(item => item.trim())
         .map((item, index) => `<li><span class="step-number">${index + 1}</span> ${item.trim()}</li>`)
         .join('');
     
     // Bestem bilde-HTML
+    // Hvis oppskriften har bilde, lages et div med background-image.
+    // Hvis ikke, vises en standard "ingen bilde"-melding med ikon
     const imageHtml = recipe.image_url
         ? `<div class="recipe-detail-image" style="background-image: url('${recipe.image_url}')"></div>`
         : `<div class="recipe-detail-image no-image">
@@ -117,6 +124,8 @@ function displayRecipeDetails(recipe, userId) {
            </div>`;
     
     // Generer kategorietikett hvis kategori eksisterer
+    // Viser hvilken kategori oppskriften tilhører.
+    // Hvis den ikke har noen, vises “Uncategorized”.
     const categoryBadge = recipe.category_name
         ? `<span class="category-badge">${recipe.category_name}</span>`
         : '<span class="category-badge">Uncategorized</span>';
@@ -129,6 +138,7 @@ function displayRecipeDetails(recipe, userId) {
     const favoriteActiveClass = recipe.is_favorite ? 'active' : '';
     
     // Bygger HTML med forbedret favorittknapp-styling og rediger-lenke med user_id
+    // KI er brukt en god del brukt for å sette opp HTML-strukturen :)
     container.innerHTML = `
         <div class="top-navigation">
             <a href="/recipes.html" class="btn-back">

@@ -86,6 +86,8 @@ async function attemptLogin(username, password, errorDisplay) {
         }
         
         // Send innloggingsforespørsel til serveren
+        // Bruker Fetch API for å sende POST-forespørsel til '/login' endepunktet
+        // inkluderer brukernavn og passord i JSON-format
         const response = await fetch('/login', {
             method: 'POST',
             headers: {
@@ -98,6 +100,8 @@ async function attemptLogin(username, password, errorDisplay) {
         const data = await response.json();
         
         // Håndter innloggingsresultatet
+        // Hvis svaret er OK, lagre brukerdata for å opprettholde økten
+        // omdiriger til dashbordet
         if (response.ok) {
             // Vellykket innlogging - lagre brukerdata og omdiriger
             localStorage.setItem('user', JSON.stringify(data));
